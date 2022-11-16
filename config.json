@@ -71,16 +71,10 @@
         "dcav0dau": "1",
         "v0radius": "5"
     },
-    "lambdakzero-builder": "",
-    "lambdakzero-initializer": "",
-    "lf-lambdakzeroinitializer": "",
-    "lambdakzero-label-builder": {
-        "processDoNotBuildLabels": "true",
-        "processBuildLabels": "false"
-    },
     "jets": {
         "nBins": "100"
     },
+    "lf-lambdakzeroinitializer": "",
     "lf-lambdakzerofinderQA": {
         "v0cospa": "0.998",
         "dcav0dau": "0.600000024",
@@ -89,6 +83,9 @@
         "v0radius": "5",
         "processRun3": "true",
         "processRun2": "false"
+    },
+    "v0": {
+        "nBins": "100"
     },
     "internal-dpl-aod-global-analysis-file-sink": "",
     "internal-dpl-aod-writer": ""
