@@ -74,7 +74,7 @@ struct Jets{
     }
   }
 };
-
+//or with process switch ?
 struct V0{
   Configurable<int> nBins{"nBins", 100, "N bins in all histos"};
   HistogramRegistry registry{
@@ -95,7 +95,7 @@ struct V0{
     if(!collision.sel8()){//event selection based on TVX -> https://aliceo2group.github.io/analysis-framework/docs/datamodel/helperTaskTables.html
       return;
      }
-     registry.fill(HIST("hVertexZ"),collision.posZ());
+     registry.fill(HIST("hVtxZ"),collision.posZ());
      for(auto& v0 : V0s){
        registry.fill(HIST("hMassK0Short"), v0.mK0Short());
      }

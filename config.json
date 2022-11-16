@@ -23,7 +23,32 @@
         "processRun2": "true",
         "processRun3": "false"
     },
-    "track-extension": "",
+    "track-extension": {
+        "compatibilityIU": "false",
+        "processRun2": "true",
+        "processRun3": "false"
+    },
+    "lambdakzero-builder": {
+        "dcanegtopv": "0.100000001",
+        "dcapostopv": "0.100000001",
+        "mincrossedrows": "70",
+        "isRun2": "0",
+        "d_bz": "-999",
+        "d_UseAbsDCA": "true",
+        "d_UseWeightedPCA": "false",
+        "v0cospa": "0.995",
+        "dcav0dau": "1",
+        "v0radius": "5",
+        "useMatCorrType": "0",
+        "rejDiffCollTracks": "0",
+        "ccdb-url": "http:\/\/alice-ccdb.cern.ch",
+        "grpPath": "GLO\/GRP\/GRP",
+        "grpmagPath": "GLO\/Config\/GRPMagField",
+        "lutPath": "GLO\/Param\/MatLUT",
+        "geoPath": "GLO\/Config\/GeometryAligned",
+        "processRun2": "true",
+        "processRun3": "false"
+    },
     "event-selection-task": {
         "syst": "PbPb",
         "muonSelection": "0",
@@ -31,12 +56,6 @@
         "isMC": "false",
         "processRun2": "true",
         "processRun3": "false"
-    },
-    "lf-lambdakzeroprefilter": {
-        "dcanegtopv": "0.100000001",
-        "dcapostopv": "0.100000001",
-        "mincrossedrows": "70",
-        "tpcrefit": "1"
     },
     "track-selection": {
         "isRun3": "false",
@@ -64,25 +83,13 @@
         "processDataCharged": "true",
         "processDataFull": "false"
     },
-    "lf-lambdakzerofinder": {
-        "d_UseAbsDCA": "1",
-        "d_bz": "-999",
-        "v0cospa": "0.995",
-        "dcav0dau": "1",
-        "v0radius": "5"
+    "lambdakzero-initializer": "",
+    "lambdakzero-label-builder": {
+        "processDoNotBuildLabels": "true",
+        "processBuildLabels": "false"
     },
     "jets": {
         "nBins": "100"
-    },
-    "lf-lambdakzeroinitializer": "",
-    "lf-lambdakzerofinderQA": {
-        "v0cospa": "0.998",
-        "dcav0dau": "0.600000024",
-        "dcanegtopv": "0.100000001",
-        "dcapostopv": "0.100000001",
-        "v0radius": "5",
-        "processRun3": "true",
-        "processRun2": "false"
     },
     "v0": {
         "nBins": "100"
