@@ -88,11 +88,13 @@
         "processDoNotBuildLabels": "true",
         "processBuildLabels": "false"
     },
-    "jets": {
-        "nBins": "100"
-    },
-    "v0": {
-        "nBins": "100"
+    "correlationvzerojets": {
+        "vertexZCut": "10",
+        "trackPtCut": "0.100000001",
+        "trackEtaCut": "0.899999976",
+        "nBins": "100",
+        "Jet": "true",
+        "process": "true"
     },
     "internal-dpl-aod-global-analysis-file-sink": "",
     "internal-dpl-aod-writer": ""

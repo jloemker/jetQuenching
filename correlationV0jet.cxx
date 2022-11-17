@@ -31,52 +31,52 @@
 ///        with n: 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD
 /// \author
 /// \since
-
-#include "Common/Core/TrackSelection.h"
-#include "PWGJE/DataModel/Jet.h"
-
 #include "Framework/runDataProcessing.h"
-#include "Framework/AnalysisTask.h"
-#include "Common/DataModel/TrackSelectionTables.h"
 #include "PWGLF/DataModel/LFStrangenessTables.h"
-#include "Common/DataModel/EventSelection.h"
 #include "Common/DataModel/Multiplicity.h"
 #include "Common/DataModel/PIDResponse.h"
+
+#include <cmath>
+#include <string>
+#include <TMath.h>
+#include <TVector2.h>
+
+#include "Framework/ASoA.h"
+#include "Framework/AnalysisDataModel.h"
+#include "Framework/AnalysisTask.h"
+#include "Framework/runDataProcessing.h"
+
+#include "EventFiltering/filterTables.h"
+
+#include "Common/Core/TrackSelection.h"
+#include "Common/Core/TrackSelectionDefaults.h"
+#include "Common/DataModel/EventSelection.h"
+#include "Common/DataModel/TrackSelectionTables.h"
+
+//#include "PWGJE/Core/JetFinder.h"// this gives me troubles bc the fastjet/*.hh are not existing ?!
+
+//#include "fastjet/PseudoJet.h"
+//#include "fastjet/ClusterSequenceArea.h"
+
+#include "PWGJE/DataModel/EMCALClusters.h"
+#include "PWGJE/DataModel/Jet.h"
+
+#include "Framework/HistogramRegistry.h"
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-struct Jets{
+struct correlationvzerojets{
+  //configurables for collision and track filter ! Crosscheck with configurables applied when using the jet finder
+  Configurable<float> vertexZCut{"vertexZCut", 10.0f, "Accepted z-vertex range"};
+  Configurable<float> trackPtCut{"trackPtCut", 0.1, "minimum constituent pT"};
+  Configurable<float> trackEtaCut{"trackEtaCut", 0.9, "constituent eta cut"};
   Configurable<int> nBins{"nBins", 100, "N bins in all histos"};
-  HistogramRegistry registry{
-    "registry",
-    {
-      {"jetPt", "jet p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{100, 0, 100}}}},
-      {"constPt", "constituent p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{100, 0, 100}}}}
-    }
-  };
 
-  // Jet and JetConstituents are tables which are filled by executable o2-analysis-jetfinder
-  void process(aod::Jet const& jet, aod::JetTrackConstituents const& constituents, aod::Tracks const& tracks)
-  {
-    registry.fill(HIST("jetPt"), jet.pt());
-    for (const auto& c : constituents) {
-      LOGF(debug, "jet %d: track id %d, track pt %g", jet.index(), c.trackId(), c.track().pt());
-      registry.fill(HIST("constPt"), c.track().pt());
-    }
-    for(auto& track : tracks ){
-      if(track.has_collision()){
-       // V0(track.collision(), V0s);
-        
-
-      }
-    }
-  }
-};
-//or with process switch ?
-struct V0{
-  Configurable<int> nBins{"nBins", 100, "N bins in all histos"};
+  Filter collisionFilter = nabs(aod::collision::posZ) < vertexZCut;
+  Filter trackFilter = (nabs(aod::track::eta) < trackEtaCut) && (requireGlobalTrackInFilter()) && (aod::track::pt > trackPtCut);
+  // using TrackCandidates = soa::Join<aod::Tracks, aod::TracksExtra,  aod::TracksDCA, aod::TrackSelection>; //->change in process function track part to: soa::Filtered<TrackCandidates> const& tracks
   HistogramRegistry registry{
     "registry",
     {
@@ -86,28 +86,45 @@ struct V0{
       {"hMAntiLambda", "hMAntiLambda", {HistType::kTH1F, {{200, 0, 10}}}},
       {"hMassTrueK0Short", "hMassTrueK0Short", {HistType::kTH1F, {{200,0.450f,0.550f}}}},
       {"hMassTrueLambda", "hMassTrueLambda", {HistType::kTH1F, {{200, 0, 10}}}},
-      {"hMassTrueAntiLambda", "hMassTrueAntiLambda", {HistType::kTH1F, {{200, 0, 10}}}}
+      {"hMassTrueAntiLambda", "hMassTrueAntiLambda", {HistType::kTH1F, {{200, 0, 10}}}},
+
+      {"jetPt", "jet p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{100, 0, 100}}}},
+      {"constPt", "constituent p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{100, 0, 100}}}}
+
     }
   };
-      
-  void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& collision, aod::V0Datas const& V0s){
-     //now getting V0
-    if(!collision.sel8()){//event selection based on TVX -> https://aliceo2group.github.io/analysis-framework/docs/datamodel/helperTaskTables.html
+  
+  void Jet(aod::Jet const& jet, aod::JetTrackConstituents const& constituents, aod::Tracks const& tracks)
+  {
+    registry.fill(HIST("jetPt"),jet.pt());
+    for (const auto& c : constituents) {
+      LOGF(debug, "jet %d: track id %d, track pt %g", jet.index(), c.trackId(), c.track().pt());
+      registry.fill(HIST("constPt"), c.track().pt());
+    }
+  }
+  PROCESS_SWITCH(correlationvzerojets, Jet, "process jets", true);
+//now write the jet processing nd then add the V0 tables and blah on same iteration over collision
+  void V0(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>> const& tracks, aod::V0Datas const& V0s){
+    if(!collision.sel7()){// sel8 is event selection based on TVX mainly for run3 data, but sel7=bool -> Event selection decision based on V0A & V0C -> https://aliceo2group.github.io/analysis-framework/docs/datamodel/helperTaskTables.html
       return;
      }
-     registry.fill(HIST("hVtxZ"),collision.posZ());
-     for(auto& v0 : V0s){
-       registry.fill(HIST("hMassK0Short"), v0.mK0Short());
-     }
-   }
+    // registry.fill(HIST("hVtxZ"),collision.posZ());
+
+     // if (collision.hasJetChHighPt() >= bTriggerDecision) {
+      registry.fill(HIST("hVtxZ"),collision.posZ()); // Inclusive Track Cross TPC Rows
+      //}
+      for(auto& v0 : V0s){
+        registry.fill(HIST("hMK0Short"),v0.mK0Short());
+      }
+  }
+  PROCESS_SWITCH(correlationvzerojets, V0, "process v0", true);
 };
-
-
-
+  
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{//run all via , separation
-   adaptAnalysisTask<V0>(cfgc),
-   adaptAnalysisTask<Jets>(cfgc)
+  // adaptAnalysisTask<V0>(cfgc),
+  // adaptAnalysisTask<Jets>(cfgc),
+   adaptAnalysisTask<correlationvzerojets>(cfgc)
   };
 }
