@@ -101,7 +101,11 @@ struct correlationvzerojets{
       {"hMAntiLambda", "hMAntiLambda", {HistType::kTH1F, {{200, 0, 10}}}},
       {"hPtAntiLambda", "if AntiLambda : v0.pt()  p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
       {"hEtaAntiLambda", "if AntiLambda : v0.eta() #eta; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
-      {"hPhiAntiLambda", "if AntiLambda : v0.phi() #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},      
+      {"hPhiAntiLambda", "if AntiLambda : v0.phi() #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
+
+      //Analysis plots
+      {"LambdaOverKaonPt", "(Lambda + AntiLambda)/2K p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
+
       //control plots	
       {"hPtTrackV0inRadius", "V0 from V0Datas in V0 radius  p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBins, 0, 100}}}},
       {"hEtaTrackV0inRadius", "V0 from V0Datas in V0 radius #eta; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
@@ -117,18 +121,26 @@ struct correlationvzerojets{
 
       //jets as next
       {"jetPt", "jet p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
-      {"constTrackPt", "constituent track p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}}
-
+      {"jetconstTrackPt", "constituent track p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
+      {"jetTrackPt",  "jetTrack in tracks p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
+      {"jetMyTrackPt",  "jetMyTrack in mytracks p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}}
     }
   };
-  
-  void Jet(aod::Jet const& jet, aod::JetTrackConstituents const& constituents, aod::Tracks const& tracks)
+
+  void Jet(aod::Jet const& jet, aod::JetTrackConstituents const& constituents, aod::Tracks const& tracks)//figure out why only aod::Tracks or MyTracks and/or if they are th same
   {//after the fastjet mystery is solved I can produce my own jet table as in the ChJetTriggerQA.cxx and then the process switch should be used fro MC/Run2/Run3 data 
     registry.fill(HIST("jetPt"),jet.pt());
     for (const auto& c : constituents) {
       LOGF(debug, "jet %d: track id %d, track pt %g", jet.index(), c.trackId(), c.track().pt());
-      registry.fill(HIST("constTrackPt"), c.track().pt());
+      registry.fill(HIST("jetconstTrackPt"), c.track().pt());
     }
+    for(auto& track : tracks){
+      registry.fill(HIST("jetTrackPt"), track.pt());
+    }
+//    for(auto& mytrack : mytracks){
+//      registry.fill(HIST("jetMyTrackPt"), mytrack.pt());
+//    }
+
   }
   PROCESS_SWITCH(correlationvzerojets, Jet, "process jets", true);
 //now write the jet processing nd then add the V0 tables and blah on same iteration over collision
@@ -181,8 +193,23 @@ struct correlationvzerojets{
         registry.fill(HIST("hTrackEta"), track.eta());
         registry.fill(HIST("hTrackPhi"), track.phi());
       }
+
+      // Baryon over Meson ratio
+      for(int i = 0; i<nBinsPt; i++){
+        double lamb = registry.get<TH1>(HIST("hPtLambda"))->GetBinContent(i);
+        double antl = registry.get<TH1>(HIST("hPtAntiLambda"))->GetBinContent(i);
+        double kaon = registry.get<TH1>(HIST("hPtK0Short"))->GetBinContent(i);
+
+        if(kaon != 0){
+          double ratio = (lamb+antl)/(2*kaon);
+          registry.fill(HIST("LambdaOverKaonPt"), registry.get<TH1>(HIST("hPtLambda"))->GetBinCenter(i), ratio);
+        }
+      }
+     // baryon_meson(registry.get<TH1>(HIST("hPtLambda")), registry.get<TH1>(HIST("hPtAnitLambda")), registry.get<TH1>(HIST("hPtK0Short")));
+
   }
-  PROCESS_SWITCH(correlationvzerojets, V0, "process v0", true);
+  PROCESS_SWITCH(correlationvzerojets, V0, "process v0 and their track QA", true);
+
 };
   
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
