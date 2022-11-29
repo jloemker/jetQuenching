@@ -66,22 +66,12 @@
         "etaMin": "-0.800000012",
         "etaMax": "0.800000012"
     },
-    "jet-finder-data": {
-        "vertexZCut": "10",
-        "trackPtCut": "0.100000001",
-        "trackEtaCut": "0.899999976",
-        "DoRhoAreaSub": "false",
-        "DoConstSub": "false",
-        "jetPtMin": "10",
-        "jetR": {
-            "values": [
-                "0.40000000000000002"
-            ]
-        },
-        "jetType2": "1",
-        "processParticleLevel": "false",
-        "processDataCharged": "true",
-        "processDataFull": "false"
+    "jet-filter": {
+        "selectionJetChHighPt": "33",
+        "cfgVertexCut": "10",
+        "cfgTPCVolume": "0.899999976",
+        "cfgJetR": "0.600000024",
+        "cfgJetPtMin": "0.0500000007"
     },
     "multiplicity-table": {
         "doVertexZeq": "1",
@@ -117,12 +107,18 @@
         "vertexZCut": "10",
         "trackPtCut": "0.100000001",
         "trackEtaCut": "0.899999976",
+        "JetR": "0.400000006",
+        "JetPtMin": "0.100000001",
+        "bTriggerDecision": "0",
         "v0cospa": "0.96999999999999997",
         "dcav0dau": "1",
         "dcanegtopv": "-1",
         "dcapostopv": "-1",
         "v0radius": "0.5",
-        "nBins": "100",
+        "nBins": "200",
+        "nBinsPt": "200",
+        "nBinsEta": "200",
+        "nBinsPhi": "200",
         "Jet": "true",
         "V0": "true"
     },

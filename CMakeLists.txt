@@ -214,6 +214,6 @@ o2physics_add_dpl_workflow(hep-mc
 
 o2physics_add_dpl_workflow(correlationv0jet
                   SOURCES src/correlationV0jet.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore O2Physics::PWGJECore O2Physics::AnalysisCore FastJet::FastJet FastJet::Contrib
                   COMPONENT_NAME AnalysisTutorial)
 
