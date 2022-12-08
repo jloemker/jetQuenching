@@ -2,7 +2,7 @@
 
 #copy file in tutorial section
 cp correlationV0jet.cxx /home/johannalomker/alice/O2Physics/Tutorials/src/correlationV0jet.cxx
-#cp CMakeLists.txt /home/johannalomker/alice/O2Physics/Tutorials/CMakeLists.txt
+cp CMakeLists.txt /home/johannalomker/alice/O2Physics/Tutorials/CMakeLists.txt
 #enter installation directory 
 cd /home/johannalomker/alice/sw/BUILD/O2Physics-latest/O2Physics/
 pwd

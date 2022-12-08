@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \Marta said: use the V0s as starting point for jet clustering, not their decay products (pions) and tro to get angular distance from leading jet momentum to V0 candidate
+/// \Marta said: use the V0s as starting point for jet clustering, not their decay products (pions) and try to get angular distance from leading jet momentum to V0 candidate
 //		-> should ask how the track tables from the jet process and v0 process are now related bc I assume the jet finder might mere things ?
 //		! the track pt sprectrum from all tracks is enourmous and the constituent track and full jet pt are small
 /// \author
@@ -19,6 +19,7 @@
 //	o2-analysis-pid-tpc --configuration json://config.json | o2-analysis-multiplicity-table --configuration json://config.json | o2-analysistutorial-correlationV0Jet --configuration json://config.json | o2-analysis-track-propagation --configuration json://config.json | o2-analysis-timestamp --configuration json://config.json | o2-analysis-lf-lambdakzerobuilder --configuration json://config.json | o2-analysis-event-selection --configuration json://config.json -b
 //	\since 2022
 ///        with n: 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD
+
 #include <cmath>
 #include <string>
 #include <TMath.h>
@@ -43,8 +44,8 @@
 #include "PWGJE/Core/JetFinder.h"// this gives me troubles bc the fastjet/*.hh are not existing ?!
 #include "PWGJE/DataModel/Jet.h"
 #include "PWGJE/DataModel/EMCALClusters.h"
-#include "fastjet/PseudoJet.h"
-#include "fastjet/ClusterSequenceArea.h"
+//#include "fastjet/PseudoJet.h"
+//#include "fastjet/ClusterSequenceArea.h"
 
 
 
@@ -52,11 +53,9 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-using MyTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::pidTPCPi, aod::pidTPCPr>;
-
-using JetTrackCandidates = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, aod::TrackSelection>;
-//- a global process function over all traks in this thing and then we give a set of selected tracks into the jet and V0 iterations ?
-//
+using MyTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::pidTPCPi, aod::pidTPCPr>;//This was used for the V0 invariant mass tutorial
+using JetTrackCandidates = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, aod::TrackSelection>;//This was used in the ChJetTriggerQA
+using CombinedTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, aod::pidTPCPi, aod::pidTPCPr, aod::TrackSelection>;//This is what I use for my analysis (for now)
 
 struct correlationvzerojets{
   //configurables for collision and track filter ! Crosscheck with configurables applied when using the jet finder
@@ -70,7 +69,6 @@ struct correlationvzerojets{
   Configurable<int> bTriggerDecision{"bTriggerDecision", 0,"Charged Jet Trigger Decision Selection"}; // 0=MB Event, 1=Event selected by EPN
 
   //configurables for the V0 identification of lambda and K0short through  selection criteria on daughters
-  //you should really know wat they are ...
   Configurable<double> v0cospa{"v0cospa", 0.97, "V0 CosPA" };// double -> N.B. dcos(x)/dx = 0 at x=0  what is this ??
   Configurable<float> dcav0dau{"dcav0dau", 1.0, "DCA V0 Daughters"};
   Configurable<float> dcanegtopv{"dcanegtopv", -1, "DCA Neg To PV"};
@@ -124,8 +122,8 @@ struct correlationvzerojets{
       {"hEtaAntiLambda", "if AntiLambda : v0.eta() #eta; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
       {"hPhiAntiLambda", "if AntiLambda : v0.phi() #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
 
-      //Analysis plots - adjust binning and make one for pp and for Pb ... oooor run it over both and produce 2 different analysis results to avoid PROCESS_SWITCH mess.
-      {"LambdaOverKaonPt", "(Lambda + AntiLambda)/2K p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
+      //Analysis plots - adjust binning and normalize that stuff ... something with integral ...
+      {"LambdaOverKaonPt", "(Lambda + AntiLambda)/2K p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 60}}}},
 
       //control plots	
       {"hPtTrackV0inRadius", "V0 from V0Datas in V0 radius  p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBins, 0, 100}}}},
@@ -140,17 +138,37 @@ struct correlationvzerojets{
       {"hTrackEta", "MyTracks in collision: track #eta; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
       {"hTrackPhi", "MyTracks in collision: track #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
 
-      //jets as next // for the train ride home !
-      {"jetVtx", "jet vtxZ; vtxZ ", {HistType::kTH1F, {{nBins, -15, 15}}}},
-      {"jetPt", "jet p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
-      {"jetconstTrackPt", "constituent track p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
-      {"jetTrackPt",  "jetTrack in tracks p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
-      {"jetMyTrackPt",  "jetMyTrack in mytracks p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}}
+      //jets as next 
+      {"jetVtx", "jet vtxZ; vtxZ [cm] ", {HistType::kTH1F, {{nBins, -15, 15}}}},
+      {"JetTrackPt", "inclusive track p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
+      {"JetTrackEta", "inclusive track #eta; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
+      {"JetTrackPhi", "inclusive track #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
+
+      {"JetLeadTrackPt", "leading track p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
+      {"JetLeadTrackEta", "leading track #eta; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
+      {"JetLeadTrackPhi", "leading track #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
+
+      {"JetLeadJetPt", "leading jet p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
+      {"JetLeadJetEta", "leading jet #eta; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
+      {"JetLeadJetPhi", "leading jet #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
+      
+      {"jetV0Pt", "V0 in jet code p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
+      {"jetV0Eta", "V0 in jet code #eta; #eta", {HistType::kTH1F, {{nBinsEta,-0.9, 0.9}}}},
+      {"jetV0Phi", "V0 in jet code #phi; #phi ", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
+      {"jetWithV0Pt", "V0 in jet with collId requ. p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
+      {"jetWithV0Eta", "V0 in jet with collId requ. #eta; #eta", {HistType::kTH1F, {{nBinsEta,-0.9, 0.9}}}},
+      {"jetWithV0Phi", "V0 in jet with collId requ.  #phi; #phi ", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}}, 
+
+      {"AngularDistance", "Angular distance(leading J - V0); #Delta R", {HistType::kTH1F, {{nBins, 0, 10}}}}
+     // {"jetPt", "jet p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
+     // {"jetconstTrackPt", "constituent track p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
+     // {"jetTrackPt",  "jetTrack in tracks p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
+     // {"jetMyTrackPt",  "jetMyTrack in mytracks p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}}
     }
   };
 
-  void Jet(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::JetFilters>>::iterator const& collision, soa::Filtered<JetTrackCandidates> const& tracks, aod::V0Datas const& V0s)//figure out why only aod::Tracks or MyTracks and/or if they are th same
-  {//after the fastjet mystery is solved I can produce my own jet table as in the ChJetTriggerQA.cxx and then the process switch should be used fro MC/Run2/Run3 data 
+  void Jet(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::JetFilters>>::iterator const& collision, soa::Filtered<CombinedTracks> const& tracks, aod::V0Datas const& V0s)//figure out why only aod::Tracks or MyTracks and/or if they are th same
+  { 
    if (collision.hasJetChHighPt() >= bTriggerDecision) {
       jetConstituents.clear();
       jetReclustered.clear();
@@ -162,16 +180,19 @@ struct correlationvzerojets{
       float leadingTrackEta = -2.0;
       float leadingTrackPhi = -1.0;
       
+      float angularDistance = -99;
+
       registry.fill(HIST("jetVtx"),collision.posZ());
       for (auto& trk : tracks) { //loop over filtered tracks in full TPC volume having pT > 100 MeV
         if (!trk.isQualityTrack()) {
           continue; // skip bad quality tracks
         }
 
-       //spectra.fill(HIST("ptphiTrackInclGood"), trk.pt(), trk.phi()); // Inclusive Track pT vs phi spectrum in TPC volume
-       //spectra.fill(HIST("ptetaTrackInclGood"), trk.pt(),trk.eta()); // Inclusive Track pT vs eta spectrum in TPC volume
-
-        fillConstituents(trk,jetConstituents); // ./PWGJE/Core/JetFinder.h
+       registry.fill(HIST("JetTrackPt"), trk.pt());
+       registry.fill(HIST("JetTrackEta"),trk.eta());
+       registry.fill(HIST("JetTrackPhi"),trk.phi());
+       
+       fillConstituents(trk,jetConstituents); // ./PWGJE/Core/JetFinder.h
                             // recombination scheme is assumed
                             // to be Escheme with pion mass
         if (trk.pt() > leadingTrackPt) { // Find leading track pT in full TPC volume
@@ -179,11 +200,20 @@ struct correlationvzerojets{
           leadingTrackEta = trk.eta();
           leadingTrackPhi = trk.phi();
         }
+      }//end tracks
+
+      for(auto& v0 : V0s){
+        registry.fill(HIST("jetV0Pt"), v0.pt());
+	registry.fill(HIST("jetV0Eta"), v0.eta());
+	registry.fill(HIST("jetV0Phi"), v0.phi());
+        
+       // fillConstituents(v0,jetConstituents); // if this works, then we need two - 1 from tracks one from v0 or even from v0 daughters ?
       }
 
       if (leadingTrackPt > -1.) {
-       // spectra.fill(HIST("ptphiLeadingTrack"), leadingTrackPt,leadingTrackPhi);
-       // spectra.fill(HIST("ptetaLeadingTrack"), leadingTrackPt,leadingTrackEta);
+        registry.fill(HIST("JetLeadTrackPt"), leadingTrackPt);
+	registry.fill(HIST("JetLeadTrackPhi"), leadingTrackPhi);
+        registry.fill(HIST("JetLeadTrackEta"), leadingTrackEta);
       }
 
       // Reconstruct jet from tracks
@@ -202,32 +232,29 @@ struct correlationvzerojets{
       }
 
       if (leadingJetPt > -1.) {
-        //spectra.fill(HIST("ptphiLeadingJet"), leadingJetPt, leadingJetPhi);
-       // spectra.fill(HIST("ptetaLeadingJet"), leadingJetPt, leadingJetEta);
+        registry.fill(HIST("JetLeadJetPt"), leadingJetPt);
+        registry.fill(HIST("JetLeadJetPhi"), leadingJetPhi);
+        registry.fill(HIST("JetLeadJetEta"), leadingJetEta);
+        for(auto& v0 : V0s){
+	 if(v0.collisionId() == collision.globalIndex()){
+           registry.fill(HIST("jetWithV0Pt"), v0.pt());
+           registry.fill(HIST("jetWithV0Eta"), v0.eta());
+           registry.fill(HIST("jetWithV0Phi"), v0.phi());
 
-       // spectra.fill(HIST("fLeadJetChPtVsLeadingTrack"), leadingTrackPt,leadingJetPt); // leading jet pT versus leading track pT
-      }
-
-      for (auto& jet : jetReclustered) {
-        if (fabs(jet.eta()) < fiducialVolume) {
-         // spectra.fill(HIST("ptJetChPtInclFidVol"), jet.perp());
-         // spectra.fill(HIST("ptphiJetChPtInclFidVol"), jet.perp(), jet.phi());
-         // spectra.fill(HIST("ptetaJetChPtInclFidVol"), jet.perp(), jet.eta());
-         // spectra.fill(HIST("jetAreaFidVol"), jet.perp(), jet.area());
-        }
-        //spectra.fill(HIST("ptetaJetChPtInclFullVol"), jet.perp(), jet.eta());
-        //spectra.fill(HIST("jetAreaFullVol"), jet.perp(), jet.area());
-      }
-
-
+	   angularDistance = sqrt(pow(leadingJetEta-v0.eta(),2) + pow(leadingJetPhi-v0.phi(),2) );
+	   registry.fill(HIST("AngularDistance"), angularDistance);
+  	  }
+        }//end V0s    
+       }//end if leading jet
+      
+	
     }//end collision
 
   }
   PROCESS_SWITCH(correlationvzerojets, Jet, "process jets", true);
 
-//now write the jet processing nd then add the V0 tables and blah on same iteration over collision
 // void V0(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>> const& tracks, aod::V0Datas const& V0s){ // for process funtion over all tracks within event selection - so this should be used and then subproccess over MyJetTracks and MyV0Tracks 
-  void V0(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision, MyTracks const& tracks, aod::V0Datas const& V0s){
+  void V0(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision,  soa::Filtered<CombinedTracks> const& tracks, aod::V0Datas const& V0s){//no more my tracks
     if(!collision.sel7()){// sel8 is event selection based on TVX mainly for run3 data, but sel7=bool -> Event selection decision based on V0A & V0C -> https://aliceo2group.github.io/analysis-framework/docs/datamodel/helperTaskTables.html
       return;
     }
@@ -236,10 +263,10 @@ struct correlationvzerojets{
 	
     for(auto& v0 : V0s){
       // particle identification by using the tpcNSigma track variable
-      float nsigma_pos_proton = TMath::Abs(v0.posTrack_as<MyTracks>().tpcNSigmaPr());//what does tpcNSigmaPr / Pi exactly ??
-      float nsigma_neg_proton = TMath::Abs(v0.negTrack_as<MyTracks>().tpcNSigmaPr());
-      float nsigma_pos_pion = TMath::Abs(v0.posTrack_as<MyTracks>().tpcNSigmaPi());
-      float nsigma_neg_pion = TMath::Abs(v0.negTrack_as<MyTracks>().tpcNSigmaPi());
+      float nsigma_pos_proton = TMath::Abs(v0.posTrack_as<CombinedTracks>().tpcNSigmaPr());//what does tpcNSigmaPr / Pi exactly ??
+      float nsigma_neg_proton = TMath::Abs(v0.negTrack_as<CombinedTracks>().tpcNSigmaPr());
+      float nsigma_pos_pion = TMath::Abs(v0.posTrack_as<CombinedTracks>().tpcNSigmaPi());
+      float nsigma_neg_pion = TMath::Abs(v0.negTrack_as<CombinedTracks>().tpcNSigmaPi());
       
       if(v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa ){//i dont understand this criteria 
         if( nsigma_pos_pion < 4 && nsigma_neg_pion < 4 ){
@@ -264,7 +291,7 @@ struct correlationvzerojets{
         registry.fill(HIST("hPtTrackV0inRadius"), v0.pt());
         registry.fill(HIST("hEtaTrackV0inRadius"), v0.eta());
         registry.fill(HIST("hPhiTrackV0inRadius"), v0.phi());
-	}
+	}//to have control plots for the V0 in the jet iteration above
 	registry.fill(HIST("hPtV0"), v0.pt());
 	registry.fill(HIST("hEtaV0"), v0.eta());
         registry.fill(HIST("hPhiV0"), v0.phi());
