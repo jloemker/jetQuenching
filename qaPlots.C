@@ -1,11 +1,13 @@
-//Add the vertex/counting plots
-//Add the angular distance
+//      {"hV0radius", "hV0radius", {HistType::kTH1F, {{nBins, 0., 15.}}}},
+//      {"hV0cospa", "hV0cospa", {HistType::kTH1F, {{nBins, -15., 15.}}}},
 //Add the Lamber over kaon - normalize the ratio ! newPtb->Scale(1/Nb->Integral());
+
+//and once I added the daughter qa, also these plots... but first check what is wrong/if it is correct to fill them after the criteria.
 void qaPlots(){
-        gStyle -> SetOptStat(0);
+
         TString input;
         //Output the Histos from correlationV0jet - the lambda over kaon, angular distance and vtx collision are not in here, but all qa's 
-        TFile *AResult = new TFile("/home/johannalomker/alice/analysis/jetQuenching/ResultsSel8.root");
+        TFile *AResult = new TFile("/home/johannalomker/alice/analysis/jetQuenching/AnalysisResults.root");
         //Output the Histos from jet-filter
         TH2F *PtEtaGood2T = (TH2F*) AResult->Get("jet-filter/spectra/ptetaGoodTracks");
         TH2F *PtEtaRej2T = (TH2F*) AResult->Get("jet-filter/spectra/ptetaRejectedTracks");
@@ -27,6 +29,33 @@ void qaPlots(){
         c->SaveAs("plots/NPosZ.pdf");
 
         //correlationvzerojets (no subdir)
+        TH1F *BaryonMeson = (TH1F*) AResult->Get("correlationvzerojets/LambdaOverKaonPt");
+        TH1F *AngularDistance = (TH1F*) AResult->Get("correlationvzerojets/AngularDistance");
+
+        TH1F *VtxZ = (TH1F*) AResult->Get("correlationvzerojets/hCollVtxZ");
+        TH1F *VtxZjets = (TH1F*) AResult->Get("correlationvzerojets/jetVtx");
+
+        TCanvas *can = new TCanvas("can", "ratio", 800, 400);
+        can->Divide(2,1);
+        can->cd(1);
+        //BaryonMeson->SetTitle("");
+        //BaryonMeson->SetLineColor(3);
+        BaryonMeson->Draw("E");
+        can->cd(2);
+        VtxZ->Draw("E");
+        can->SaveAs("BaryonOverMeson.pdf");
+
+        TCanvas *can2 = new TCanvas("can2", "AngularDistance", 800, 400);
+        can2->Divide(2,1);
+        can2->cd(1);
+        AngularDistance->Draw("E");
+        can2->cd(2);
+        VtxZjets->Draw("E");
+        can2->SaveAs("AngularDistance.pdf");
+
+
+        gStyle -> SetOptStat(0);
+
         TH1F *MK = (TH1F*) AResult->Get("correlationvzerojets/hMK0Short");
         TH1F *ML = (TH1F*) AResult->Get("correlationvzerojets/hMLambda");
         TH1F *MAL = (TH1F*) AResult->Get("correlationvzerojets/hMAntiLambda");
@@ -96,7 +125,7 @@ void qaPlots(){
         ALEta->Draw("same");
         c1->cd();
         L1->Draw(" ");
-        c1->SaveAs("Sel8_V0Candidates.pdf");
+        c1->SaveAs("V0Candidates.pdf");
 
         TH1F *VRpt = (TH1F*) AResult->Get("correlationvzerojets/hPtTrackV0inRadius");
         TH1F *Vpt = (TH1F*) AResult->Get("correlationvzerojets/hPtV0");
@@ -210,7 +239,7 @@ void qaPlots(){
         Tphi->Draw("Esame");
         c2->cd();
         L2->Draw();
-        c2->SaveAs("Sel8_QA.pdf");
+        c2->SaveAs("QA.pdf");
 
         auto L3 = new TLegend(0.2,0.9, 0.8,1);
         L3->SetHeader("","C");
@@ -303,6 +332,6 @@ void qaPlots(){
         c3->cd();
         L3->Draw();
 
-        c3->SaveAs("Sel8_qaJets.pdf");
+        c3->SaveAs("qaJets.pdf");
 
 }

@@ -106,6 +106,8 @@ struct correlationvzerojets{
     "registry",
     {
       {"hCollVtxZ", "hCollisionVtxZ", {HistType::kTH1F, {{nBins, -15., 15.}}}},
+      {"hV0radius", "hV0radius", {HistType::kTH1F, {{nBins, 0., 15.}}}},
+      {"hV0cospa", "hV0cospa", {HistType::kTH1F, {{nBins, -15., 15.}}}},
 
       {"hMK0Short", "hMK0Short; M (GeV/#it{c})", {HistType::kTH1F, {{200,0.450f,0.550f}}}},//why these exact numbers - around mass peak i assume :P
       {"hPtK0Short", "if K0Short : v0.pt()  p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
@@ -122,6 +124,19 @@ struct correlationvzerojets{
       {"hEtaAntiLambda", "if AntiLambda : v0.eta() #eta; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
       {"hPhiAntiLambda", "if AntiLambda : v0.phi() #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
 
+      //Daughter QA
+      {"hPtPosPion", "hPosPion ; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
+      {"hPtNegPion", "hNegPion ; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
+      {"hPtPosPion", "hPosPr ; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
+      {"hPtNegPion", "hNegPr ; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},//ofc. there is no neg proton, pos/neg refers to the tracks
+      {"hEtaPosPion", "hEtaPosPion; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
+      {"hEtaNegPion", "hEtaNegPion; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
+      {"hEtaPosPion", "hEtaPosPr; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
+      {"hEtaNegPr", "hEtaNegPr; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
+      {"hPhiPosPion", "hPhiPosPion; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
+      {"hPhiNegPion", "hPhiNegPion; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
+      {"hPhiPosPr", "hPhiPosPr; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
+      {"hPhiNegPr", "hPhiNegPr; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
       //Analysis plots - adjust binning and normalize that stuff ... something with integral ...
       {"LambdaOverKaonPt", "(Lambda + AntiLambda)/2K p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 60}}}},
 
@@ -169,7 +184,10 @@ struct correlationvzerojets{
 
   void Jet(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::JetFilters>>::iterator const& collision, soa::Filtered<CombinedTracks> const& tracks, aod::V0Datas const& V0s)//figure out why only aod::Tracks or MyTracks and/or if they are th same
   { 
-   if (collision.hasJetChHighPt() >= bTriggerDecision) {
+  //same initial collision requirement as in V0 process -> Event selection decision based on V0A & V0C
+   if(!collision.sel7()){return;}
+
+   if (collision.hasJetChHighPt() >= bTriggerDecision) {//should look this one up too!
       jetConstituents.clear();
       jetReclustered.clear();
 
@@ -204,15 +222,15 @@ struct correlationvzerojets{
 
       for(auto& v0 : V0s){
         registry.fill(HIST("jetV0Pt"), v0.pt());
-	registry.fill(HIST("jetV0Eta"), v0.eta());
-	registry.fill(HIST("jetV0Phi"), v0.phi());
+	      registry.fill(HIST("jetV0Eta"), v0.eta());
+	      registry.fill(HIST("jetV0Phi"), v0.phi());
         
        // fillConstituents(v0,jetConstituents); // if this works, then we need two - 1 from tracks one from v0 or even from v0 daughters ?
       }
 
       if (leadingTrackPt > -1.) {
         registry.fill(HIST("JetLeadTrackPt"), leadingTrackPt);
-	registry.fill(HIST("JetLeadTrackPhi"), leadingTrackPhi);
+	      registry.fill(HIST("JetLeadTrackPhi"), leadingTrackPhi);
         registry.fill(HIST("JetLeadTrackEta"), leadingTrackEta);
       }
 
@@ -236,14 +254,16 @@ struct correlationvzerojets{
         registry.fill(HIST("JetLeadJetPhi"), leadingJetPhi);
         registry.fill(HIST("JetLeadJetEta"), leadingJetEta);
         for(auto& v0 : V0s){
-	 if(v0.collisionId() == collision.globalIndex()){
+	      if(v0.collisionId() == collision.globalIndex()){
            registry.fill(HIST("jetWithV0Pt"), v0.pt());
            registry.fill(HIST("jetWithV0Eta"), v0.eta());
            registry.fill(HIST("jetWithV0Phi"), v0.phi());
-
-	   angularDistance = sqrt(pow(leadingJetEta-v0.eta(),2) + pow(leadingJetPhi-v0.phi(),2) );
-	   registry.fill(HIST("AngularDistance"), angularDistance);
-  	  }
+           float dPhi = leadingJetPhi-v0.phi();//fast jet uses -pi to pi azimuthal range while Alice uses 0 to 2pi
+           if(dPhi > fastjet::pi ){ dPhi -= 2*fastjet::pi;}
+           if(dPhi < -fastjet::pi){ dPhi += 2*fastjet::pi;}
+	         angularDistance = sqrt(pow(leadingJetEta-v0.eta(),2) + pow(dPhi,2) );
+	         registry.fill(HIST("AngularDistance"), angularDistance);
+  	     }
         }//end V0s    
        }//end if leading jet
       
@@ -255,47 +275,71 @@ struct correlationvzerojets{
 
 // void V0(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>> const& tracks, aod::V0Datas const& V0s){ // for process funtion over all tracks within event selection - so this should be used and then subproccess over MyJetTracks and MyV0Tracks 
   void V0(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision,  soa::Filtered<CombinedTracks> const& tracks, aod::V0Datas const& V0s){//no more my tracks
-    if(!collision.sel8()){// sel8 is event selection based on TVX mainly for run3 data, but sel7=bool -> Event selection decision based on V0A & V0C -> https://aliceo2group.github.io/analysis-framework/docs/datamodel/helperTaskTables.html
+    if(!collision.sel7()){// sel8 is event selection based on TVX mainly for run3 data, but sel7=bool -> Event selection decision based on V0A & V0C -> https://aliceo2group.github.io/analysis-framework/docs/datamodel/helperTaskTables.html
       return;
     }
 
     registry.fill(HIST("hCollVtxZ"),collision.posZ()); // Inclusive Tracks from sel7 selections and the aod::pidTPCPi, aod::pidTPCPr
 	
     for(auto& v0 : V0s){
-      // particle identification by using the tpcNSigma track variable
+      //particle identification by using the tpcNSigma track variable
       float nsigma_pos_proton = TMath::Abs(v0.posTrack_as<CombinedTracks>().tpcNSigmaPr());//what does tpcNSigmaPr / Pi exactly ??
       float nsigma_neg_proton = TMath::Abs(v0.negTrack_as<CombinedTracks>().tpcNSigmaPr());
       float nsigma_pos_pion = TMath::Abs(v0.posTrack_as<CombinedTracks>().tpcNSigmaPi());
       float nsigma_neg_pion = TMath::Abs(v0.negTrack_as<CombinedTracks>().tpcNSigmaPi());
-      
+      //get v0.radius distribution
+      registry.fill(HIST("hV0radius"), v0.v0radius());
+      registry.fill(HIST("hV0cospa"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()));
       if(v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa ){//i dont understand this criteria 
         if( nsigma_pos_pion < 4 && nsigma_neg_pion < 4 ){
           registry.fill(HIST("hMK0Short"), v0.mK0Short());
-	  registry.fill(HIST("hPtK0Short"), v0.pt());
-	  registry.fill(HIST("hEtaK0Short"), v0.eta());
+	        registry.fill(HIST("hPtK0Short"), v0.pt());
+	        registry.fill(HIST("hEtaK0Short"), v0.eta());
           registry.fill(HIST("hPhiK0Short"), v0.phi());
+          //for QA of daughters
+          registry.fill(HIST("hPtPosPion"), v0.posTrack_as<CombinedTracks>().pt()); 
+          registry.fill(HIST("hPtNegPion"), v0.negTrack_as<CombinedTracks>().pt()); 
+          registry.fill(HIST("hEtaPosPion"), v0.posTrack_as<CombinedTracks>().eta()); 
+          registry.fill(HIST("hEtaNegPion"), v0.negTrack_as<CombinedTracks>().eta()); 
+          registry.fill(HIST("hPhiPosPion"), v0.posTrack_as<CombinedTracks>().phi()); 
+          registry.fill(HIST("hPhiNegPion"), v0.negTrack_as<CombinedTracks>().phi()); 
        	}
-	if( nsigma_pos_proton < 4 && nsigma_neg_proton < 4){
+	      if( nsigma_pos_proton < 4 && nsigma_neg_proton < 4){
           registry.fill(HIST("hMLambda"), v0.mLambda());
-	  registry.fill(HIST("hPtLambda"), v0.pt());
+	        registry.fill(HIST("hPtLambda"), v0.pt());
           registry.fill(HIST("hEtaLambda"), v0.eta());
           registry.fill(HIST("hPhiLambda"), v0.phi());
-	}
-	if( nsigma_pos_pion < 4 && nsigma_neg_proton < 4){
+          //for QA of daughters
+          registry.fill(HIST("hPtPosPr"), v0.posTrack_as<CombinedTracks>().pt()); 
+          registry.fill(HIST("hPtNegPr"), v0.negTrack_as<CombinedTracks>().pt()); 
+          registry.fill(HIST("hEtaPosPr"), v0.posTrack_as<CombinedTracks>().eta()); 
+          registry.fill(HIST("hEtaNegPr"), v0.negTrack_as<CombinedTracks>().eta()); 
+          registry.fill(HIST("hPhiPosPr"), v0.posTrack_as<CombinedTracks>().phi()); 
+          registry.fill(HIST("hPhiNegPr"), v0.negTrack_as<CombinedTracks>().phi()); 
+	      }
+	      if( nsigma_pos_pion < 4 && nsigma_neg_proton < 4){
           registry.fill(HIST("hMAntiLambda"), v0.mAntiLambda());	
-	  registry.fill(HIST("hPtAntiLambda"), v0.pt());
+	        registry.fill(HIST("hPtAntiLambda"), v0.pt());
           registry.fill(HIST("hEtaAntiLambda"), v0.eta());
           registry.fill(HIST("hPhiAntiLambda"), v0.phi());
-         }
+          //for QA of daughters
+          registry.fill(HIST("hPtPosPion"), v0.posTrack_as<CombinedTracks>().pt()); 
+          registry.fill(HIST("hPtNegPr"), v0.negTrack_as<CombinedTracks>().pt()); 
+          registry.fill(HIST("hEtaPosPion"), v0.posTrack_as<CombinedTracks>().eta()); 
+          registry.fill(HIST("hEtaNegPr"), v0.negTrack_as<CombinedTracks>().eta()); 
+          registry.fill(HIST("hPhiPosPion"), v0.posTrack_as<CombinedTracks>().phi()); 
+          registry.fill(HIST("hPhiNegPr"), v0.negTrack_as<CombinedTracks>().phi()); 
+
+        }
         // Get V0 within radius and v0cosPA
         registry.fill(HIST("hPtTrackV0inRadius"), v0.pt());
         registry.fill(HIST("hEtaTrackV0inRadius"), v0.eta());
         registry.fill(HIST("hPhiTrackV0inRadius"), v0.phi());
-	}//to have control plots for the V0 in the jet iteration above
-	registry.fill(HIST("hPtV0"), v0.pt());
-	registry.fill(HIST("hEtaV0"), v0.eta());
-        registry.fill(HIST("hPhiV0"), v0.phi());
-      }	
+	    }//to have control plots for the V0 in the jet iteration above
+	    registry.fill(HIST("hPtV0"), v0.pt());
+	    registry.fill(HIST("hEtaV0"), v0.eta());
+      registry.fill(HIST("hPhiV0"), v0.phi());
+    }	
  
       for(auto& track : tracks){//Check kinematics of MyTracks within the sel7 process selection !
         registry.fill(HIST("hTrackPt"), track.pt());
