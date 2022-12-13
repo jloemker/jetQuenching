@@ -16,9 +16,8 @@
 //	Johanna Lömker
 //	to run (step vzerotemplateexample): check the run.sh and config.json
 //
-//	o2-analysis-pid-tpc --configuration json://config.json | o2-analysis-multiplicity-table --configuration json://config.json | o2-analysistutorial-correlationV0Jet --configuration json://config.json | o2-analysis-track-propagation --configuration json://config.json | o2-analysis-timestamp --configuration json://config.json | o2-analysis-lf-lambdakzerobuilder --configuration json://config.json | o2-analysis-event-selection --configuration json://config.json -b
 //	\since 2022
-///        with n: 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD
+/// with n: 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD
 
 #include <cmath>
 #include <string>
@@ -41,11 +40,9 @@
 #include "Common/DataModel/PIDResponse.h"
 
 #include "PWGLF/DataModel/LFStrangenessTables.h"
-#include "PWGJE/Core/JetFinder.h"// this gives me troubles bc the fastjet/*.hh are not existing ?!
+#include "PWGJE/Core/JetFinder.h"
 #include "PWGJE/DataModel/Jet.h"
 #include "PWGJE/DataModel/EMCALClusters.h"
-//#include "fastjet/PseudoJet.h"
-//#include "fastjet/ClusterSequenceArea.h"
 
 
 
@@ -100,16 +97,14 @@ struct correlationvzerojets{
     fiducialVolume = trackEtaCut - JetR;
   }
 
-
-  // using TrackCandidates = soa::Join<aod::Tracks, aod::TracksExtra,  aod::TracksDCA, aod::TrackSelection>; //->change in process function track part to: soa::Filtered<TrackCandidates> const& tracks
   HistogramRegistry registry{
     "registry",
     {
       {"hCollVtxZ", "hCollisionVtxZ", {HistType::kTH1F, {{nBins, -15., 15.}}}},
-      {"hV0radius", "hV0radius", {HistType::kTH1F, {{nBins, 0., 15.}}}},
-      {"hV0cospa", "hV0cospa", {HistType::kTH1F, {{nBins, -15., 15.}}}},
+      {"hV0radius", "hV0radius", {HistType::kTH1F, {{nBins, 0., 50.}}}},
+      {"hV0cospa", "hV0cospa", {HistType::kTH1F, {{nBins, -2., 2.}}}},
 
-      {"hMK0Short", "hMK0Short; M (GeV/#it{c})", {HistType::kTH1F, {{200,0.450f,0.550f}}}},//why these exact numbers - around mass peak i assume :P
+      {"hMK0Short", "hMK0Short; M (GeV/#it{c})", {HistType::kTH1F, {{200,0.450f,0.550f}}}},
       {"hPtK0Short", "if K0Short : v0.pt()  p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
       {"hEtaK0Short", "if K0Short : v0.eta() #eta; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
       {"hPhiK0Short", "if K0Short : v0.phi() #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
@@ -127,20 +122,22 @@ struct correlationvzerojets{
       //Daughter QA
       {"hPtPosPion", "hPosPion ; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
       {"hPtNegPion", "hNegPion ; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
-      {"hPtPosPion", "hPosPr ; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
-      {"hPtNegPion", "hNegPr ; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},//ofc. there is no neg proton, pos/neg refers to the tracks
+      {"hPtPosPr", "hPosPr ; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
+      {"hPtNegPr", "hNegPr ; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},//ofc. there is no neg proton, pos/neg refers to the tracks
       {"hEtaPosPion", "hEtaPosPion; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
       {"hEtaNegPion", "hEtaNegPion; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
-      {"hEtaPosPion", "hEtaPosPr; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
+      {"hEtaPosPr", "hEtaPosPr; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
       {"hEtaNegPr", "hEtaNegPr; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
       {"hPhiPosPion", "hPhiPosPion; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
       {"hPhiNegPion", "hPhiNegPion; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
       {"hPhiPosPr", "hPhiPosPr; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
       {"hPhiNegPr", "hPhiNegPr; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
-      //Analysis plots - adjust binning and normalize that stuff ... something with integral ...
+      //Analysis plots - adjust binning and normalize that stuff ... something with integral ... move this whole shabang to the plotting script
       {"LambdaOverKaonPt", "(Lambda + AntiLambda)/2K p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 60}}}},
 
       //control plots	
+      {"MdeltaPhi", "Martas #Delta #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
+      {"JdeltaPhi", "Johannas #Delta #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
       {"hPtTrackV0inRadius", "V0 from V0Datas in V0 radius  p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBins, 0, 100}}}},
       {"hEtaTrackV0inRadius", "V0 from V0Datas in V0 radius #eta; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
       {"hPhiTrackV0inRadius", "V0 from V0Datas in V0 radius  #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
@@ -175,12 +172,31 @@ struct correlationvzerojets{
       {"jetWithV0Phi", "V0 in jet with collId requ.  #phi; #phi ", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}}, 
 
       {"AngularDistance", "Angular distance(leading J - V0); #Delta R", {HistType::kTH1F, {{nBins, 0, 10}}}}
-     // {"jetPt", "jet p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
-     // {"jetconstTrackPt", "constituent track p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
-     // {"jetTrackPt",  "jetTrack in tracks p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
-     // {"jetMyTrackPt",  "jetMyTrack in mytracks p_{T};p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}}
     }
   };
+
+  //or this to compute delta phi
+  Double_t ComputeDeltaPhi( Double_t phi1, Double_t phi2) {
+    //To be completely sure, use inner products to get delta phi = phi1-phi2
+    Double_t x1, y1, x2, y2;
+    x1 = TMath::Cos( phi1 );
+    y1 = TMath::Sin( phi1 );
+    x2 = TMath::Cos( phi2 );
+    y2 = TMath::Sin( phi2 );
+    Double_t lInnerProd = x1*x2 + y1*y2;
+    Double_t lVectorProd = x1*y2 - x2*y1;
+    Double_t lReturnVal = 0;
+    if( lVectorProd > 1e-8 ) {
+      lReturnVal = TMath::ACos(lInnerProd);
+    }
+    if( lVectorProd < -1e-8 ) {
+      lReturnVal = -TMath::ACos(lInnerProd);
+    }
+    if( lReturnVal < -TMath::Pi()/2. ) {
+      lReturnVal += 2.*TMath::Pi();
+    }
+    return lReturnVal;
+  }
 
   void Jet(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::JetFilters>>::iterator const& collision, soa::Filtered<CombinedTracks> const& tracks, aod::V0Datas const& V0s)//figure out why only aod::Tracks or MyTracks and/or if they are th same
   { 
@@ -248,26 +264,29 @@ struct correlationvzerojets{
           }
         }
       }
-
       if (leadingJetPt > -1.) {
         registry.fill(HIST("JetLeadJetPt"), leadingJetPt);
         registry.fill(HIST("JetLeadJetPhi"), leadingJetPhi);
         registry.fill(HIST("JetLeadJetEta"), leadingJetEta);
         for(auto& v0 : V0s){
 	      if(v0.collisionId() == collision.globalIndex()){
-           registry.fill(HIST("jetWithV0Pt"), v0.pt());
-           registry.fill(HIST("jetWithV0Eta"), v0.eta());
-           registry.fill(HIST("jetWithV0Phi"), v0.phi());
-           float dPhi = leadingJetPhi-v0.phi();//fast jet uses -pi to pi azimuthal range while Alice uses 0 to 2pi
-           if(dPhi > fastjet::pi ){ dPhi -= 2*fastjet::pi;}
-           if(dPhi < -fastjet::pi){ dPhi += 2*fastjet::pi;}
-	         angularDistance = sqrt(pow(leadingJetEta-v0.eta(),2) + pow(dPhi,2) );
-	         registry.fill(HIST("AngularDistance"), angularDistance);
+          registry.fill(HIST("jetWithV0Pt"), v0.pt());
+          registry.fill(HIST("jetWithV0Eta"), v0.eta());
+          registry.fill(HIST("jetWithV0Phi"), v0.phi());
+           //float dPhi = ComputeDeltaPhi(leadingJetPhi,v0.phi());// tutorial Oct.
+           //if(dPhi > fastjet::pi ){ dPhi -= 2*fastjet::pi;}// johanna
+           //if(dPhi < -fastjet::pi){ dPhi += 2*fastjet::pi;}
+          float dPhi = leadingJetPhi - v0.phi();//fast jet uses -pi to pi azimuthal range while Alice uses 0 to 2pi - marta
+          if(dPhi > 2*fastjet::pi ){ dPhi -= 2*fastjet::pi;}
+          if(dPhi < 0 ){ dPhi += 2*fastjet::pi;}
+          registry.fill(HIST("MdeltaPhi"), dPhi);
+          registry.fill(HIST("JdeltaPhi"), ComputeDeltaPhi(leadingJetPhi,v0.phi()));
+	        angularDistance = sqrt(pow(leadingJetEta-v0.eta(),2) + pow(dPhi,2) );
+	        registry.fill(HIST("AngularDistance"), angularDistance);
   	     }
         }//end V0s    
        }//end if leading jet
       
-	
     }//end collision
 
   }
@@ -341,26 +360,30 @@ struct correlationvzerojets{
       registry.fill(HIST("hPhiV0"), v0.phi());
     }	
  
-      for(auto& track : tracks){//Check kinematics of MyTracks within the sel7 process selection !
-        registry.fill(HIST("hTrackPt"), track.pt());
-        registry.fill(HIST("hTrackEta"), track.eta());
-        registry.fill(HIST("hTrackPhi"), track.phi());
-      }
-
-      // Baryon over Meson ratio
-      for(int i = 0; i<nBinsPt; i++){
-        double lamb = registry.get<TH1>(HIST("hPtLambda"))->GetBinContent(i);
-        double antl = registry.get<TH1>(HIST("hPtAntiLambda"))->GetBinContent(i);
-        double kaon = registry.get<TH1>(HIST("hPtK0Short"))->GetBinContent(i);
-
-        if(kaon != 0){
-          double ratio = (lamb+antl)/(2*kaon);
-          registry.fill(HIST("LambdaOverKaonPt"), registry.get<TH1>(HIST("hPtLambda"))->GetBinCenter(i), ratio);
-        }
-      }
-
+    for(auto& track : tracks){//Check kinematics of tracks
+      registry.fill(HIST("hTrackPt"), track.pt());
+      registry.fill(HIST("hTrackEta"), track.eta());
+      registry.fill(HIST("hTrackPhi"), track.phi());
+    }
+   //BaryonMesonRatio(); 
    }
   PROCESS_SWITCH(correlationvzerojets, V0, "process v0 and their track QA", true);
+  
+  void BaryonMesonRatio(){ // hmm... ?! -> outsourced in plotting, treting as uncorrelated for error propergation !
+  // Baryon over Meson ratio maybe I can make this a template/or implement for V0 and jets together..once I have V0 included in jet part
+  // but including it in the process function itself is a bad idea..waaay to many entries
+    for(int i = 0; i<nBinsPt; i++){
+      double lamb = registry.get<TH1>(HIST("hPtLambda"))->GetBinContent(i);
+      double antl = registry.get<TH1>(HIST("hPtAntiLambda"))->GetBinContent(i);
+      double kaon = registry.get<TH1>(HIST("hPtK0Short"))->GetBinContent(i);
+
+      if(kaon != 0){
+        double ratio = (lamb+antl)/(2*kaon);
+        registry.fill(HIST("LambdaOverKaonPt"), registry.get<TH1>(HIST("hPtLambda"))->GetBinCenter(i), ratio);
+      }
+    }
+  }
+  //PROCESS_SWITCH(correlationvzerojets, BaryonMesonRatio, "calculate baryon over meson ratio for inclusive V0 process", true);
 
 };
   
