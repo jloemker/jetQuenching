@@ -1,8 +1,28 @@
-//      {"hV0radius", "hV0radius", {HistType::kTH1F, {{nBins, 0., 15.}}}},
-//      {"hV0cospa", "hV0cospa", {HistType::kTH1F, {{nBins, -15., 15.}}}},
 //Add the Lamber over kaon - normalize the ratio ! newPtb->Scale(1/Nb->Integral());
-
 //and once I added the daughter qa, also these plots... but first check what is wrong/if it is correct to fill them after the criteria.
+//      {"MdeltaPhi", "Martas #Delta #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
+//      {"", "Johannas #Delta #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
+
+
+/*
+
+void BaryonMesonRatio(){ // hmm... ?! -> outsourced in plotting, treting as uncorrelated for error propergation !
+  // Baryon over Meson ratio maybe I can make this a template/or implement for V0 and jets together..once I have V0 included in jet part
+  // but including it in the process function itself is a bad idea..waaay to many entries
+    for(int i = 0; i<nBinsPt; i++){
+      double lamb = registry.get<TH1>(HIST("hPtLambda"))->GetBinContent(i);
+      double antl = registry.get<TH1>(HIST("hPtAntiLambda"))->GetBinContent(i);
+      double kaon = registry.get<TH1>(HIST("hPtK0Short"))->GetBinContent(i);
+
+      if(kaon != 0){
+        double ratio = (lamb+antl)/(2*kaon);
+        registry.fill(HIST("LambdaOverKaonPt"), registry.get<TH1>(HIST("hPtLambda"))->GetBinCenter(i), ratio);
+      }
+    }
+  }
+
+*/
+
 void qaPlots(){
 
         TString input;
@@ -31,7 +51,6 @@ void qaPlots(){
         //correlationvzerojets (no subdir)
         TH1F *BaryonMeson = (TH1F*) AResult->Get("correlationvzerojets/LambdaOverKaonPt");
         TH1F *AngularDistance = (TH1F*) AResult->Get("correlationvzerojets/AngularDistance");
-
         TH1F *VtxZ = (TH1F*) AResult->Get("correlationvzerojets/hCollVtxZ");
         TH1F *VtxZjets = (TH1F*) AResult->Get("correlationvzerojets/jetVtx");
 
@@ -53,9 +72,28 @@ void qaPlots(){
         VtxZjets->Draw("E");
         can2->SaveAs("AngularDistance.pdf");
 
+        TH1F *V0radius = (TH1F*) AResult->Get("correlationvzerojets/hV0radius");
+        TH1F *cosPA = (TH1F*) AResult->Get("correlationvzerojets/hV0cospa");
+        TCanvas *can3 = new TCanvas("can3", "V0 cut variables", 800, 400);
+        can3->Divide(2,1);
+        can3->cd(1);
+        V0radius->Draw("E");
+        can3->cd(2);
+        cosPA->Draw("E");
+        can3->SaveAs("V0radiusAndCospa.pdf");
+
+        TH1F *J = (TH1F*) AResult->Get("correlationvzerojets/JdeltaPhi");
+        TH1F *M = (TH1F*) AResult->Get("correlationvzerojets/MdeltaPhi");
+        TCanvas *can4 = new TCanvas();
+        can4->Divide(2,1);
+        can4->cd(1);
+        J->Draw("E");
+        can4->cd(2);
+        M->Draw("E");
+        can4->SaveAs("DeltaPhi.pdf");
 
         gStyle -> SetOptStat(0);
-
+        //V0 observables (Mass, pT, phi, eta)
         TH1F *MK = (TH1F*) AResult->Get("correlationvzerojets/hMK0Short");
         TH1F *ML = (TH1F*) AResult->Get("correlationvzerojets/hMLambda");
         TH1F *MAL = (TH1F*) AResult->Get("correlationvzerojets/hMAntiLambda");
