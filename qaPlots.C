@@ -1,30 +1,7 @@
-//Add the Lamber over kaon - normalize the ratio ! newPtb->Scale(1/Nb->Integral());
+//Add the Lamber over kaon - normalize the ratio ! newPtb->Scale(1/Nb->Integral()) -> ok, not required anymore .. but why is the error so large ?;
 //and once I added the daughter qa, also these plots... but first check what is wrong/if it is correct to fill them after the criteria.
-//      {"MdeltaPhi", "Martas #Delta #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
-//      {"", "Johannas #Delta #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
-
-
-/*
-
-void BaryonMesonRatio(){ // hmm... ?! -> outsourced in plotting, treting as uncorrelated for error propergation !
-  // Baryon over Meson ratio maybe I can make this a template/or implement for V0 and jets together..once I have V0 included in jet part
-  // but including it in the process function itself is a bad idea..waaay to many entries
-    for(int i = 0; i<nBinsPt; i++){
-      double lamb = registry.get<TH1>(HIST("hPtLambda"))->GetBinContent(i);
-      double antl = registry.get<TH1>(HIST("hPtAntiLambda"))->GetBinContent(i);
-      double kaon = registry.get<TH1>(HIST("hPtK0Short"))->GetBinContent(i);
-
-      if(kaon != 0){
-        double ratio = (lamb+antl)/(2*kaon);
-        registry.fill(HIST("LambdaOverKaonPt"), registry.get<TH1>(HIST("hPtLambda"))->GetBinCenter(i), ratio);
-      }
-    }
-  }
-
-*/
 
 void qaPlots(){
-
         TString input;
         //Output the Histos from correlationV0jet - the lambda over kaon, angular distance and vtx collision are not in here, but all qa's 
         TFile *AResult = new TFile("/home/johannalomker/alice/analysis/jetQuenching/AnalysisResults.root");
@@ -49,11 +26,27 @@ void qaPlots(){
         c->SaveAs("plots/NPosZ.pdf");
 
         //correlationvzerojets (no subdir)
+        TH1F *Lamb = (TH1F*) AResult->Get("correlationvzerojets/hPtLambda");
+        TH1F *ALamb = (TH1F*) AResult->Get("correlationvzerojets/hPtAntiLambda");
+        TH1F *Kaon = (TH1F*) AResult->Get("correlationvzerojets/hPtK0Short");
         TH1F *BaryonMeson = (TH1F*) AResult->Get("correlationvzerojets/LambdaOverKaonPt");
-        TH1F *AngularDistance = (TH1F*) AResult->Get("correlationvzerojets/AngularDistance");
         TH1F *VtxZ = (TH1F*) AResult->Get("correlationvzerojets/hCollVtxZ");
-        TH1F *VtxZjets = (TH1F*) AResult->Get("correlationvzerojets/jetVtx");
-
+        for(int i = 0; i<Lamb->GetNbinsX(); i++){
+          double lamb = Lamb->GetBinContent(i);
+          double errLamb = Lamb->GetBinError(i);
+          double alamb = ALamb->GetBinContent(i);
+          double errALamb = ALamb->GetBinError(i);
+          double kaon = Kaon->GetBinContent(i);
+          double errKaon = Kaon->GetBinError(i);
+          if(kaon != 0 && errKaon != 0){
+            double ratio = (lamb+alamb)/(2*kaon);
+            double err =  pow( pow( (errLamb/2*kaon) ,2) + pow( (errALamb/2*kaon) ,2) + pow( (-(lamb+alamb)*errKaon/ 2*pow(kaon,2)) , 2 ), 1/2 );
+            //double err =  pow( pow( errLamb ,2) + pow( errALamb,2) + pow( errKaon , 2 ), 1/2 );
+            //double err = ();
+            BaryonMeson->SetBinContent(i, ratio);
+            BaryonMeson->SetBinError(i, err);
+          }
+        }
         TCanvas *can = new TCanvas("can", "ratio", 800, 400);
         can->Divide(2,1);
         can->cd(1);
@@ -63,6 +56,9 @@ void qaPlots(){
         can->cd(2);
         VtxZ->Draw("E");
         can->SaveAs("BaryonOverMeson.pdf");
+        
+        TH1F *AngularDistance = (TH1F*) AResult->Get("correlationvzerojets/AngularDistance");
+        TH1F *VtxZjets = (TH1F*) AResult->Get("correlationvzerojets/jetVtx");
 
         TCanvas *can2 = new TCanvas("can2", "AngularDistance", 800, 400);
         can2->Divide(2,1);
@@ -81,7 +77,7 @@ void qaPlots(){
         can3->cd(2);
         cosPA->Draw("E");
         can3->SaveAs("V0radiusAndCospa.pdf");
-
+        //to check the dPhi calculation !
         TH1F *J = (TH1F*) AResult->Get("correlationvzerojets/JdeltaPhi");
         TH1F *M = (TH1F*) AResult->Get("correlationvzerojets/MdeltaPhi");
         TCanvas *can4 = new TCanvas();
@@ -145,10 +141,8 @@ void qaPlots(){
         KPhi->GetYaxis()->SetRangeUser(0,1000);
         KPhi->SetTitle("");
         KPhi->SetLineColor(3);
-        KPhi->GetYaxis()->SetMoreLogLabels(5);
         KPhi->Draw();
         c1->SetLogy();
-        LPhi->GetYaxis()->SetMoreLogLabels();
         LPhi->SetLineColor(1);
         LPhi->Draw("same");
         ALPhi->SetLineColor(2);
@@ -164,6 +158,9 @@ void qaPlots(){
         c1->cd();
         L1->Draw(" ");
         c1->SaveAs("V0Candidates.pdf");
+
+        //here I want to add my daughter track QA
+
 
         TH1F *VRpt = (TH1F*) AResult->Get("correlationvzerojets/hPtTrackV0inRadius");
         TH1F *Vpt = (TH1F*) AResult->Get("correlationvzerojets/hPtV0");
