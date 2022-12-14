@@ -42,7 +42,6 @@ void qaPlots(){
             double ratio = (lamb+alamb)/(2*kaon);
             double err =  pow( pow( (errLamb/2*kaon) ,2) + pow( (errALamb/2*kaon) ,2) + pow( (-(lamb+alamb)*errKaon/ 2*pow(kaon,2)) , 2 ), 1/2 );
             //double err =  pow( pow( errLamb ,2) + pow( errALamb,2) + pow( errKaon , 2 ), 1/2 );
-            //double err = ();
             BaryonMeson->SetBinContent(i, ratio);
             BaryonMeson->SetBinError(i, err);
           }
@@ -52,10 +51,11 @@ void qaPlots(){
         can->cd(1);
         //BaryonMeson->SetTitle("");
         //BaryonMeson->SetLineColor(3);
+        BaryonMeson->GetXaxis()->SetRangeUser(0,10);
         BaryonMeson->Draw("E");
         can->cd(2);
         VtxZ->Draw("E");
-        can->SaveAs("BaryonOverMeson.pdf");
+        can->SaveAs("plots/BaryonOverMeson.pdf");
         
         TH1F *AngularDistance = (TH1F*) AResult->Get("correlationvzerojets/AngularDistance");
         TH1F *VtxZjets = (TH1F*) AResult->Get("correlationvzerojets/jetVtx");
@@ -66,7 +66,7 @@ void qaPlots(){
         AngularDistance->Draw("E");
         can2->cd(2);
         VtxZjets->Draw("E");
-        can2->SaveAs("AngularDistance.pdf");
+        can2->SaveAs("plots/AngularDistance.pdf");
 
         TH1F *V0radius = (TH1F*) AResult->Get("correlationvzerojets/hV0radius");
         TH1F *cosPA = (TH1F*) AResult->Get("correlationvzerojets/hV0cospa");
@@ -76,17 +76,17 @@ void qaPlots(){
         V0radius->Draw("E");
         can3->cd(2);
         cosPA->Draw("E");
-        can3->SaveAs("V0radiusAndCospa.pdf");
+        can3->SaveAs("plots/V0radiusAndCospa.pdf");
         //to check the dPhi calculation !
         TH1F *J = (TH1F*) AResult->Get("correlationvzerojets/JdeltaPhi");
         TH1F *M = (TH1F*) AResult->Get("correlationvzerojets/MdeltaPhi");
-        TCanvas *can4 = new TCanvas();
+        TCanvas *can4 = new TCanvas("can4", "dPhi", 800, 400);
         can4->Divide(2,1);
         can4->cd(1);
         J->Draw("E");
         can4->cd(2);
         M->Draw("E");
-        can4->SaveAs("DeltaPhi.pdf");
+        can4->SaveAs("plots/DeltaPhi.pdf");
 
         gStyle -> SetOptStat(0);
         //V0 observables (Mass, pT, phi, eta)
@@ -157,10 +157,116 @@ void qaPlots(){
         ALEta->Draw("same");
         c1->cd();
         L1->Draw(" ");
-        c1->SaveAs("V0Candidates.pdf");
+        c1->SaveAs("plots/V0Candidates.pdf");
 
         //here I want to add my daughter track QA
+        TH1F *PiPospt = (TH1F*) AResult->Get("correlationvzerojets/hPtPosPion");
+        TH1F *PiNegpt = (TH1F*) AResult->Get("correlationvzerojets/hPtNegPion");
+        TH1F *PrPospt = (TH1F*) AResult->Get("correlationvzerojets/hPtPosPr");
+        TH1F *PrNegpt = (TH1F*) AResult->Get("correlationvzerojets/hPtNegPr");
 
+        TH1F *PiPoseta = (TH1F*) AResult->Get("correlationvzerojets/hEtaPosPion");
+        TH1F *PiNegeta = (TH1F*) AResult->Get("correlationvzerojets/hEtaNegPion");
+        TH1F *PrPoseta = (TH1F*) AResult->Get("correlationvzerojets/hEtaPosPr");
+        TH1F *PrNegeta = (TH1F*) AResult->Get("correlationvzerojets/hEtaNegPr");
+
+        TH1F *PiPosphi = (TH1F*) AResult->Get("correlationvzerojets/hPhiPosPion");
+        TH1F *PiNegphi = (TH1F*) AResult->Get("correlationvzerojets/hPhiNegPion");
+        TH1F *PrPosphi = (TH1F*) AResult->Get("correlationvzerojets/hPhiPosPr");
+        TH1F *PrNegphi = (TH1F*) AResult->Get("correlationvzerojets/hPhiNegPr");
+
+        auto L4 = new TLegend(0.2,0.9, 0.8,1);
+        L4->SetHeader("","C");
+        L4->SetNColumns(4);
+        L4->SetTextSize(0.036);
+        L4->AddEntry(PiPospt, "Positive #pi tracks", "lep");//from jet process
+        L4->AddEntry(PrPospt, "Positive p tracks", "lep");//from jet process
+        L4->AddEntry(PiNegpt, "Negative #pi tracks", "lep");//from jet process
+        L4->AddEntry(PrNegpt, "Negative p tracks", "lep");//from jet process
+        L4->SetBorderSize(0);
+        L4->SetFillStyle(0);
+
+        TCanvas *c4 = new TCanvas("c4", "V0 daughter tracks", 1200, 400);
+        c4->cd();
+        TPad *pad4 = new TPad("pad4", "pad4", 0., 0., 0.3, 0.9);
+        pad4->SetBottomMargin(0.15); 
+        pad4->SetLeftMargin(0.15);
+	pad4->SetRightMargin(0.1);
+        pad4->Draw();             // Draw the upper pad: pad1
+        pad4->cd();               // pad1 becomes the current pad
+	PiPospt->GetXaxis()->SetRangeUser(0,10);
+        //PiPospt->GetYaxis()->SetRangeUser(0,120000);
+	PiPospt->SetLineColor(3);
+        PiPospt->SetMarkerColor(3);
+        PiPospt->SetMarkerStyle(23);
+        PiPospt->SetTitle(" ");
+        PiPospt->DrawCopy();
+        PiNegpt->SetLineColor(3);
+        PiNegpt->SetMarkerStyle(26);
+        PiNegpt->SetMarkerColor(3);
+        PiNegpt->DrawCopy("Esame");
+        PrPospt->SetLineColor(2);
+        PrPospt->SetMarkerStyle(26);
+        PrPospt->SetMarkerColor(2);
+        PrPospt->DrawCopy("Esame");
+        PrNegpt->SetLineColor(2);
+        PrNegpt->SetMarkerStyle(23);
+        PrNegpt->SetMarkerColor(2);
+        PrNegpt->DrawCopy("Esame");
+        c4->cd();
+        TPad *p4 = new TPad("pa4", "pa4", 0.3, 0., 0.6, 0.9);
+        p4->SetBottomMargin(0.15); 
+        p4->SetLeftMargin(0.15);
+	p4->SetRightMargin(0.1);
+        p4->Draw();             // Draw the upper pad: pad1
+        p4->cd();               // pad1 becomes the current pad
+        //LTe->GetYaxis()->SetRangeUser(0,2200);
+	PiPoseta->SetLineColor(3);
+        PiPoseta->SetMarkerStyle(23);
+        PiPoseta->SetMarkerColor(3);
+        PiPoseta->SetTitle(" ");
+        PiPoseta->DrawCopy();
+        PiNegeta->SetLineColor(3);
+        PiNegeta->SetMarkerStyle(26);
+        PiNegeta->SetMarkerColor(3);
+        PiNegeta->DrawCopy("Esame");
+        PrPoseta->SetLineColor(2);
+        PrPoseta->SetMarkerStyle(26);
+        PrPoseta->SetMarkerColor(2);
+        PrPoseta->DrawCopy("Esame");
+        PrNegeta->SetLineColor(2);
+        PrNegeta->SetMarkerStyle(23);
+        PrNegeta->SetMarkerColor(2);
+        PrNegeta->DrawCopy("Esame");
+        c4->cd();
+        TPad *pa4 = new TPad("pa4", "pa4", 0.6, 0., 0.9, 0.9);//finish this plot in the train
+        pa4->SetBottomMargin(0.15); 
+        pa4->SetLeftMargin(0.15);
+	pa4->SetRightMargin(0.1);
+        pa4->Draw();             // Draw the upper pad: pad1
+        pa4->cd();               // pad1 becomes the current pad
+        //LTphi->GetYaxis()->SetRangeUser(0,1800);
+        PiPosphi->SetLineColor(3);
+        PiPosphi->SetMarkerStyle(23);
+        PiPosphi->SetMarkerColor(3);
+        PiPosphi->SetTitle(" ");
+        PiPosphi->DrawCopy();
+        PiNegphi->SetLineColor(3);
+        PiNegphi->SetMarkerStyle(26);
+        PiNegphi->SetMarkerColor(3);
+        PiNegphi->DrawCopy("Esame");
+        PrPosphi->SetLineColor(2);
+        PrPosphi->SetMarkerStyle(26);
+        PrPosphi->SetMarkerColor(2);
+        PrPosphi->DrawCopy("Esame");
+        PrNegphi->SetLineColor(2);
+        PrNegphi->SetMarkerStyle(23);
+        PrNegphi->SetMarkerColor(2);
+        PrNegphi->DrawCopy("Esame");
+        c4->cd();
+        L4->Draw();
+
+        c4->SaveAs("plots/qaV0Daughters.pdf");
 
         TH1F *VRpt = (TH1F*) AResult->Get("correlationvzerojets/hPtTrackV0inRadius");
         TH1F *Vpt = (TH1F*) AResult->Get("correlationvzerojets/hPtV0");
@@ -274,7 +380,7 @@ void qaPlots(){
         Tphi->Draw("Esame");
         c2->cd();
         L2->Draw();
-        c2->SaveAs("QA.pdf");
+        c2->SaveAs("plots/QA.pdf");
 
         auto L3 = new TLegend(0.2,0.9, 0.8,1);
         L3->SetHeader("","C");
@@ -287,8 +393,7 @@ void qaPlots(){
         L3->SetBorderSize(0);
         L3->SetFillStyle(0);
 
-        //here i need pads otherwise the legend will not work - once this is done: rerun the whole shabang with sel8 !
-        TCanvas *c3 = new TCanvas("c3", "Jets and V0 in jetprocess", 1200, 400);//fix colors markers and add legends
+        TCanvas *c3 = new TCanvas("c3", "Jets and V0 in jetprocess", 1200, 400);
         c3->cd();
         TPad *pa = new TPad("pa", "pa", 0., 0., 0.3, 0.9);
         pa->SetBottomMargin(0.15); 
@@ -367,6 +472,6 @@ void qaPlots(){
         c3->cd();
         L3->Draw();
 
-        c3->SaveAs("qaJets.pdf");
+        c3->SaveAs("plots/qaJets.pdf");
 
 }

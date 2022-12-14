@@ -70,7 +70,7 @@ struct correlationvzerojets{
   Configurable<float> dcav0dau{"dcav0dau", 1.0, "DCA V0 Daughters"};
   Configurable<float> dcanegtopv{"dcanegtopv", -1, "DCA Neg To PV"};
   Configurable<float> dcapostopv{"dcapostopv", -1, "DCA Pos To PV"};//why would they also put -1: bc this is the initiaization, updated in process du dummy 
-  Configurable<float> v0radius{"v0radius", 0.5, "v0radius"};//what is this ? decay cone ? no idea
+  Configurable<float> v0radius{"v0radius", 4, "v0radius"};//minium decay length
 
   Configurable<int> nBins{"nBins", 200, "N bins in histos"};
   Configurable<int> nBinsPt{"nBinsPt", 200, "N bins in pT histos"};
@@ -226,7 +226,7 @@ struct correlationvzerojets{
        registry.fill(HIST("JetTrackEta"),trk.eta());
        registry.fill(HIST("JetTrackPhi"),trk.phi());
        
-       fillConstituents(trk,jetConstituents); // ./PWGJE/Core/JetFinder.h
+       fillConstituents(trk,jetConstituents); // ./PWGJE/Core/JetFinder.h - maybe, if I add the V0 shabang, I could fill from tracks of V0 within v0 radius ?
                             // recombination scheme is assumed
                             // to be Escheme with pion mass
         if (trk.pt() > leadingTrackPt) { // Find leading track pT in full TPC volume
@@ -240,8 +240,6 @@ struct correlationvzerojets{
         registry.fill(HIST("jetV0Pt"), v0.pt());
 	      registry.fill(HIST("jetV0Eta"), v0.eta());
 	      registry.fill(HIST("jetV0Phi"), v0.phi());
-        
-       // fillConstituents(v0,jetConstituents); // if this works, then we need two - 1 from tracks one from v0 or even from v0 daughters ?
       }
 
       if (leadingTrackPt > -1.) {
@@ -273,15 +271,12 @@ struct correlationvzerojets{
           registry.fill(HIST("jetWithV0Pt"), v0.pt());
           registry.fill(HIST("jetWithV0Eta"), v0.eta());
           registry.fill(HIST("jetWithV0Phi"), v0.phi());
-           //float dPhi = ComputeDeltaPhi(leadingJetPhi,v0.phi());// tutorial Oct.
-           //if(dPhi > fastjet::pi ){ dPhi -= 2*fastjet::pi;}// johanna
-           //if(dPhi < -fastjet::pi){ dPhi += 2*fastjet::pi;}
           float dPhi = leadingJetPhi - v0.phi();//fast jet uses -pi to pi azimuthal range while Alice uses 0 to 2pi - marta
           if(dPhi > 2*fastjet::pi ){ dPhi -= 2*fastjet::pi;}
           if(dPhi < 0 ){ dPhi += 2*fastjet::pi;}
           registry.fill(HIST("MdeltaPhi"), dPhi);
-          registry.fill(HIST("JdeltaPhi"), ComputeDeltaPhi(leadingJetPhi,v0.phi()));
-	        angularDistance = sqrt(pow(leadingJetEta-v0.eta(),2) + pow(dPhi,2) );
+          registry.fill(HIST("JdeltaPhi"), ComputeDeltaPhi(leadingJetPhi,v0.phi()));//this is the dPhi from the turtorial in Oct.
+	        angularDistance = sqrt(pow(leadingJetEta-v0.eta(),2) + pow(dPhi,2) );//this is the correct dPhi that I use from now on
 	        registry.fill(HIST("AngularDistance"), angularDistance);
   	     }
         }//end V0s    
@@ -292,7 +287,6 @@ struct correlationvzerojets{
   }
   PROCESS_SWITCH(correlationvzerojets, Jet, "process jets", true);
 
-// void V0(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>> const& tracks, aod::V0Datas const& V0s){ // for process funtion over all tracks within event selection - so this should be used and then subproccess over MyJetTracks and MyV0Tracks 
   void V0(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision,  soa::Filtered<CombinedTracks> const& tracks, aod::V0Datas const& V0s){//no more my tracks
     if(!collision.sel7()){// sel8 is event selection based on TVX mainly for run3 data, but sel7=bool -> Event selection decision based on V0A & V0C -> https://aliceo2group.github.io/analysis-framework/docs/datamodel/helperTaskTables.html
       return;
@@ -309,7 +303,7 @@ struct correlationvzerojets{
       //get v0.radius distribution
       registry.fill(HIST("hV0radius"), v0.v0radius());
       registry.fill(HIST("hV0cospa"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()));
-      if(v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa ){//i dont understand this criteria 
+      if(v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa ){
         if( nsigma_pos_pion < 4 && nsigma_neg_pion < 4 ){
           registry.fill(HIST("hMK0Short"), v0.mK0Short());
 	        registry.fill(HIST("hPtK0Short"), v0.pt());
@@ -368,23 +362,6 @@ struct correlationvzerojets{
    //BaryonMesonRatio(); 
    }
   PROCESS_SWITCH(correlationvzerojets, V0, "process v0 and their track QA", true);
-  
-  void BaryonMesonRatio(){ // hmm... ?! -> outsourced in plotting, treting as uncorrelated for error propergation !
-  // Baryon over Meson ratio maybe I can make this a template/or implement for V0 and jets together..once I have V0 included in jet part
-  // but including it in the process function itself is a bad idea..waaay to many entries
-    for(int i = 0; i<nBinsPt; i++){
-      double lamb = registry.get<TH1>(HIST("hPtLambda"))->GetBinContent(i);
-      double antl = registry.get<TH1>(HIST("hPtAntiLambda"))->GetBinContent(i);
-      double kaon = registry.get<TH1>(HIST("hPtK0Short"))->GetBinContent(i);
-
-      if(kaon != 0){
-        double ratio = (lamb+antl)/(2*kaon);
-        registry.fill(HIST("LambdaOverKaonPt"), registry.get<TH1>(HIST("hPtLambda"))->GetBinCenter(i), ratio);
-      }
-    }
-  }
-  //PROCESS_SWITCH(correlationvzerojets, BaryonMesonRatio, "calculate baryon over meson ratio for inclusive V0 process", true);
-
 };
   
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
@@ -392,6 +369,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   return WorkflowSpec{//run all via , separation
   // adaptAnalysisTask<JetQATask>(cfgc)
      adaptAnalysisTask<correlationvzerojets>(cfgc)
-  //  adaptAnalysisTask<jets>
   };
 }
