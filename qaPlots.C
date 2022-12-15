@@ -1,10 +1,10 @@
 //Add the Lamber over kaon - normalize the ratio ! newPtb->Scale(1/Nb->Integral()) -> ok, not required anymore .. but why is the error so large ?;
-//and once I added the daughter qa, also these plots... but first check what is wrong/if it is correct to fill them after the criteria.
-
 void qaPlots(){
         TString input;
-        //Output the Histos from correlationV0jet - the lambda over kaon, angular distance and vtx collision are not in here, but all qa's 
-        TFile *AResult = new TFile("/home/johannalomker/alice/analysis/jetQuenching/AnalysisResults.root");
+        //Output the Histos from correlationV0jet - the lambda over kaon, angular distance are not in here, but all qa's 
+        TFile *AResult = new TFile("/home/johannalomker/alice/analysis/jetQuenching/AnalysisV0CollisionId.root");
+        //TFile *AResult = new TFile("/home/johannalomker/alice/analysis/jetQuenching/AnalysisV0GlobalIndex.root");
+        
         //Output the Histos from jet-filter
         TH2F *PtEtaGood2T = (TH2F*) AResult->Get("jet-filter/spectra/ptetaGoodTracks");
         TH2F *PtEtaRej2T = (TH2F*) AResult->Get("jet-filter/spectra/ptetaRejectedTracks");
@@ -26,47 +26,18 @@ void qaPlots(){
         c->SaveAs("plots/NPosZ.pdf");
 
         //correlationvzerojets (no subdir)
-        TH1F *Lamb = (TH1F*) AResult->Get("correlationvzerojets/hPtLambda");
-        TH1F *ALamb = (TH1F*) AResult->Get("correlationvzerojets/hPtAntiLambda");
-        TH1F *Kaon = (TH1F*) AResult->Get("correlationvzerojets/hPtK0Short");
-        TH1F *BaryonMeson = (TH1F*) AResult->Get("correlationvzerojets/LambdaOverKaonPt");
         TH1F *VtxZ = (TH1F*) AResult->Get("correlationvzerojets/hCollVtxZ");
-        for(int i = 0; i<Lamb->GetNbinsX(); i++){
-          double lamb = Lamb->GetBinContent(i);
-          double errLamb = Lamb->GetBinError(i);
-          double alamb = ALamb->GetBinContent(i);
-          double errALamb = ALamb->GetBinError(i);
-          double kaon = Kaon->GetBinContent(i);
-          double errKaon = Kaon->GetBinError(i);
-          if(kaon != 0 && errKaon != 0){
-            double ratio = (lamb+alamb)/(2*kaon);
-            double err =  pow( pow( (errLamb/2*kaon) ,2) + pow( (errALamb/2*kaon) ,2) + pow( (-(lamb+alamb)*errKaon/ 2*pow(kaon,2)) , 2 ), 1/2 );
-            //double err =  pow( pow( errLamb ,2) + pow( errALamb,2) + pow( errKaon , 2 ), 1/2 );
-            BaryonMeson->SetBinContent(i, ratio);
-            BaryonMeson->SetBinError(i, err);
-          }
-        }
-        TCanvas *can = new TCanvas("can", "ratio", 800, 400);
-        can->Divide(2,1);
-        can->cd(1);
-        //BaryonMeson->SetTitle("");
-        //BaryonMeson->SetLineColor(3);
-        BaryonMeson->GetXaxis()->SetRangeUser(0,10);
-        BaryonMeson->Draw("E");
-        can->cd(2);
-        VtxZ->Draw("E");
-        can->SaveAs("plots/BaryonOverMeson.pdf");
-        
-        TH1F *AngularDistance = (TH1F*) AResult->Get("correlationvzerojets/AngularDistance");
         TH1F *VtxZjets = (TH1F*) AResult->Get("correlationvzerojets/jetVtx");
 
-        TCanvas *can2 = new TCanvas("can2", "AngularDistance", 800, 400);
-        can2->Divide(2,1);
-        can2->cd(1);
-        AngularDistance->Draw("E");
-        can2->cd(2);
+        TCanvas *can = new TCanvas("can", "vtx", 800, 400);
+        can->Divide(2,1);
+        can->cd(1);
+        VtxZjets->SetTitle("Vtx Z Jets process");
         VtxZjets->Draw("E");
-        can2->SaveAs("plots/AngularDistance.pdf");
+        can->cd(2);
+        VtxZ->SetTitle("Vtx Z V0 process");
+        VtxZ->Draw("E");
+        can->SaveAs("plots/VtxJetsV0.pdf");
 
         TH1F *V0radius = (TH1F*) AResult->Get("correlationvzerojets/hV0radius");
         TH1F *cosPA = (TH1F*) AResult->Get("correlationvzerojets/hV0cospa");
@@ -77,16 +48,33 @@ void qaPlots(){
         can3->cd(2);
         cosPA->Draw("E");
         can3->SaveAs("plots/V0radiusAndCospa.pdf");
-        //to check the dPhi calculation !
-        TH1F *J = (TH1F*) AResult->Get("correlationvzerojets/JdeltaPhi");
+
+        //to check the dPhi and dEta calculation in jets!
+        TH1F *J = (TH1F*) AResult->Get("correlationvzerojets/hdeltaEta");
         TH1F *M = (TH1F*) AResult->Get("correlationvzerojets/MdeltaPhi");
         TCanvas *can4 = new TCanvas("can4", "dPhi", 800, 400);
         can4->Divide(2,1);
         can4->cd(1);
+        J->SetTitle("#Delta #eta");
         J->Draw("E");
         can4->cd(2);
+        M->SetTitle("#Delta #Phi");
         M->Draw("E");
-        can4->SaveAs("plots/DeltaPhi.pdf");
+        can4->SaveAs("plots/DeltaPhiEta.pdf");
+
+        //to understand what these indeces in jets are
+        TH2F *VColGlob = (TH2F*) AResult->Get("correlationvzerojets/V0CollIdVsGlobIndex");
+        TH2F *VColVGlob = (TH2F*) AResult->Get("correlationvzerojets/V0CollIdVsV0GlobIndex");
+        TH2F *VGlobGlob = (TH2F*) AResult->Get("correlationvzerojets/V0GlobVsCollGlobIndex");
+        TCanvas *V = new TCanvas("V", "Index", 900, 400);
+        V->Divide(3,1);
+        V->cd(1);
+        VColGlob->Draw("COLZ");
+        V->cd(2);
+        VColVGlob->Draw("COLZ");
+        V->cd(3);
+        VGlobGlob->Draw("COLZ");
+        V->SaveAs("plots/IndexMystery.pdf");        
 
         gStyle -> SetOptStat(0);
         //V0 observables (Mass, pT, phi, eta)
@@ -119,12 +107,12 @@ void qaPlots(){
         TCanvas *c1 = new TCanvas("c1", "canvas", 800, 800);
         c1->Divide(2,2);
         c1->cd(1);
-        MAL->SetTitle("");
-        MAL->SetLineColor(2);
-        MAL->GetXaxis()->SetRangeUser(0,3);
-        MAL->Draw();
+        MK->SetTitle("");
         MK->SetLineColor(3);
-        MK->Draw("same");
+        MK->GetXaxis()->SetRangeUser(0,3);
+        MK->Draw();
+        MAL->SetLineColor(2);
+        MAL->Draw("same");
         ML->SetLineColor(1);
         ML->Draw("same");
         c1->cd(2);
@@ -136,9 +124,9 @@ void qaPlots(){
         LPt->Draw("same");
         ALPt->SetLineColor(2);
         ALPt->Draw("same");
-        c1->cd(3);                              //here we need to modify the y scale bc, the other lines are there but rather low...
+        c1->cd(3); 
         c1->SetLogy();
-        KPhi->GetYaxis()->SetRangeUser(0,1000);
+        KPhi->GetYaxis()->SetRangeUser(0, 2500);
         KPhi->SetTitle("");
         KPhi->SetLineColor(3);
         KPhi->Draw();
@@ -160,112 +148,212 @@ void qaPlots(){
         c1->SaveAs("plots/V0Candidates.pdf");
 
         //here I want to add my daughter track QA
-        TH1F *PiPospt = (TH1F*) AResult->Get("correlationvzerojets/hPtPosPion");
-        TH1F *PiNegpt = (TH1F*) AResult->Get("correlationvzerojets/hPtNegPion");
-        TH1F *PrPospt = (TH1F*) AResult->Get("correlationvzerojets/hPtPosPr");
-        TH1F *PrNegpt = (TH1F*) AResult->Get("correlationvzerojets/hPtNegPr");
+        TH1F *KPiPospt = (TH1F*) AResult->Get("correlationvzerojets/hKPtPosPion");
+        TH1F *KPiNegpt = (TH1F*) AResult->Get("correlationvzerojets/hKPtNegPion");
+        TH1F *KPiPoseta = (TH1F*) AResult->Get("correlationvzerojets/hKEtaPosPion");
+        TH1F *KPiNegeta = (TH1F*) AResult->Get("correlationvzerojets/hKEtaNegPion");
+        TH1F *KPiPosphi = (TH1F*) AResult->Get("correlationvzerojets/hKPhiPosPion");
+        TH1F *KPiNegphi = (TH1F*) AResult->Get("correlationvzerojets/hKPhiNegPion");
 
-        TH1F *PiPoseta = (TH1F*) AResult->Get("correlationvzerojets/hEtaPosPion");
-        TH1F *PiNegeta = (TH1F*) AResult->Get("correlationvzerojets/hEtaNegPion");
-        TH1F *PrPoseta = (TH1F*) AResult->Get("correlationvzerojets/hEtaPosPr");
-        TH1F *PrNegeta = (TH1F*) AResult->Get("correlationvzerojets/hEtaNegPr");
-
-        TH1F *PiPosphi = (TH1F*) AResult->Get("correlationvzerojets/hPhiPosPion");
-        TH1F *PiNegphi = (TH1F*) AResult->Get("correlationvzerojets/hPhiNegPion");
-        TH1F *PrPosphi = (TH1F*) AResult->Get("correlationvzerojets/hPhiPosPr");
-        TH1F *PrNegphi = (TH1F*) AResult->Get("correlationvzerojets/hPhiNegPr");
-
-        auto L4 = new TLegend(0.2,0.9, 0.8,1);
-        L4->SetHeader("","C");
+        auto L4 = new TLegend(0.2,0.9, 0.8,1);//for each mother one legend
+        L4->SetHeader("Kaon Daughters","C");
         L4->SetNColumns(4);
         L4->SetTextSize(0.036);
-        L4->AddEntry(PiPospt, "Positive #pi tracks", "lep");//from jet process
-        L4->AddEntry(PrPospt, "Positive p tracks", "lep");//from jet process
-        L4->AddEntry(PiNegpt, "Negative #pi tracks", "lep");//from jet process
-        L4->AddEntry(PrNegpt, "Negative p tracks", "lep");//from jet process
+        L4->AddEntry(KPiPospt, "Positive #pi tracks", "lep");
+        L4->AddEntry(KPiNegpt, "Negative #pi tracks", "lep");
         L4->SetBorderSize(0);
         L4->SetFillStyle(0);
 
-        TCanvas *c4 = new TCanvas("c4", "V0 daughter tracks", 1200, 400);
-        c4->cd();
+        TH1F *LPrPospt = (TH1F*) AResult->Get("correlationvzerojets/hLPtPosPr");
+        TH1F *LPiNegpt = (TH1F*) AResult->Get("correlationvzerojets/hLPtNegPi");
+        TH1F *LPrPoseta = (TH1F*) AResult->Get("correlationvzerojets/hLEtaPosPr");
+        TH1F *LPiNegeta = (TH1F*) AResult->Get("correlationvzerojets/hLEtaNegPi");
+        TH1F *LPrPosphi = (TH1F*) AResult->Get("correlationvzerojets/hLPhiPosPr");
+        TH1F *LPiNegphi = (TH1F*) AResult->Get("correlationvzerojets/hLPhiNegPi");
+
+        auto L41 = new TLegend(0.2,0.9, 0.8,1);
+        L41->SetHeader("Lambda Daughters","C");
+        L41->SetNColumns(4);
+        L41->SetTextSize(0.036);
+        L41->AddEntry(LPrPospt, "Positive p tracks", "lep");
+        L41->AddEntry(LPiNegpt, "Negative #pi tracks", "lep");
+        L41->SetBorderSize(0);
+        L41->SetFillStyle(0);
+
+        TH1F *ALPiPospt = (TH1F*) AResult->Get("correlationvzerojets/hALPtPosPion");
+        TH1F *ALPrNegpt = (TH1F*) AResult->Get("correlationvzerojets/hALPtNegPr");
+        TH1F *ALPiPoseta = (TH1F*) AResult->Get("correlationvzerojets/hALEtaPosPion");
+        TH1F *ALPrNegeta = (TH1F*) AResult->Get("correlationvzerojets/hALEtaNegPr");
+        TH1F *ALPiPosphi = (TH1F*) AResult->Get("correlationvzerojets/hALPhiPosPion");
+        TH1F *ALPrNegphi = (TH1F*) AResult->Get("correlationvzerojets/hALPhiNegPr");
+
+        auto L42 = new TLegend(0.2,0.9, 0.8,1);
+        L42->SetHeader("Anti Lambda Daughters","C");
+        L42->SetNColumns(4);
+        L42->SetTextSize(0.036);
+        L42->AddEntry(ALPiPospt, "Positive #pi tracks", "lep");
+        L42->AddEntry(ALPrNegpt, "Negative p tracks", "lep");
+        L42->SetBorderSize(0);
+        L42->SetFillStyle(0);
+
+        TCanvas *c4 = new TCanvas("c4", "V0 daughter tracks", 1200, 1200);
+        c4->Divide(1,3);
+        c4->cd(1);
         TPad *pad4 = new TPad("pad4", "pad4", 0., 0., 0.3, 0.9);
         pad4->SetBottomMargin(0.15); 
         pad4->SetLeftMargin(0.15);
 	pad4->SetRightMargin(0.1);
         pad4->Draw();             // Draw the upper pad: pad1
         pad4->cd();               // pad1 becomes the current pad
-	PiPospt->GetXaxis()->SetRangeUser(0,10);
+	KPiPospt->GetXaxis()->SetRangeUser(0,15);
         //PiPospt->GetYaxis()->SetRangeUser(0,120000);
-	PiPospt->SetLineColor(3);
-        PiPospt->SetMarkerColor(3);
-        PiPospt->SetMarkerStyle(23);
-        PiPospt->SetTitle(" ");
-        PiPospt->DrawCopy();
-        PiNegpt->SetLineColor(3);
-        PiNegpt->SetMarkerStyle(26);
-        PiNegpt->SetMarkerColor(3);
-        PiNegpt->DrawCopy("Esame");
-        PrPospt->SetLineColor(2);
-        PrPospt->SetMarkerStyle(26);
-        PrPospt->SetMarkerColor(2);
-        PrPospt->DrawCopy("Esame");
-        PrNegpt->SetLineColor(2);
-        PrNegpt->SetMarkerStyle(23);
-        PrNegpt->SetMarkerColor(2);
-        PrNegpt->DrawCopy("Esame");
-        c4->cd();
+	KPiPospt->SetLineColor(3);
+        KPiPospt->SetMarkerColor(3);
+        KPiPospt->SetMarkerStyle(23);
+        KPiPospt->SetTitle(" ");
+        KPiPospt->DrawCopy();
+        KPiNegpt->SetLineColor(8);
+        KPiNegpt->SetMarkerStyle(26);
+        KPiNegpt->SetMarkerColor(8);
+        KPiNegpt->DrawCopy("Esame");
+        c4->cd(1);
         TPad *p4 = new TPad("pa4", "pa4", 0.3, 0., 0.6, 0.9);
         p4->SetBottomMargin(0.15); 
         p4->SetLeftMargin(0.15);
 	p4->SetRightMargin(0.1);
-        p4->Draw();             // Draw the upper pad: pad1
-        p4->cd();               // pad1 becomes the current pad
-        //LTe->GetYaxis()->SetRangeUser(0,2200);
-	PiPoseta->SetLineColor(3);
-        PiPoseta->SetMarkerStyle(23);
-        PiPoseta->SetMarkerColor(3);
-        PiPoseta->SetTitle(" ");
-        PiPoseta->DrawCopy();
-        PiNegeta->SetLineColor(3);
-        PiNegeta->SetMarkerStyle(26);
-        PiNegeta->SetMarkerColor(3);
-        PiNegeta->DrawCopy("Esame");
-        PrPoseta->SetLineColor(2);
-        PrPoseta->SetMarkerStyle(26);
-        PrPoseta->SetMarkerColor(2);
-        PrPoseta->DrawCopy("Esame");
-        PrNegeta->SetLineColor(2);
-        PrNegeta->SetMarkerStyle(23);
-        PrNegeta->SetMarkerColor(2);
-        PrNegeta->DrawCopy("Esame");
-        c4->cd();
-        TPad *pa4 = new TPad("pa4", "pa4", 0.6, 0., 0.9, 0.9);//finish this plot in the train
+        p4->Draw();             
+        p4->cd();               
+	KPiPoseta->SetLineColor(3);
+        KPiPoseta->SetMarkerStyle(23);
+        KPiPoseta->SetMarkerColor(3);
+        KPiPoseta->SetTitle(" ");
+        KPiPoseta->DrawCopy();
+        KPiNegeta->SetLineColor(8);
+        KPiNegeta->SetMarkerStyle(26);
+        KPiNegeta->SetMarkerColor(8);
+        KPiNegeta->DrawCopy("Esame");
+        c4->cd(1);
+        TPad *pa4 = new TPad("pa4", "pa4", 0.6, 0., 0.9, 0.9);
         pa4->SetBottomMargin(0.15); 
         pa4->SetLeftMargin(0.15);
 	pa4->SetRightMargin(0.1);
-        pa4->Draw();             // Draw the upper pad: pad1
-        pa4->cd();               // pad1 becomes the current pad
-        //LTphi->GetYaxis()->SetRangeUser(0,1800);
-        PiPosphi->SetLineColor(3);
-        PiPosphi->SetMarkerStyle(23);
-        PiPosphi->SetMarkerColor(3);
-        PiPosphi->SetTitle(" ");
-        PiPosphi->DrawCopy();
-        PiNegphi->SetLineColor(3);
-        PiNegphi->SetMarkerStyle(26);
-        PiNegphi->SetMarkerColor(3);
-        PiNegphi->DrawCopy("Esame");
-        PrPosphi->SetLineColor(2);
-        PrPosphi->SetMarkerStyle(26);
-        PrPosphi->SetMarkerColor(2);
-        PrPosphi->DrawCopy("Esame");
-        PrNegphi->SetLineColor(2);
-        PrNegphi->SetMarkerStyle(23);
-        PrNegphi->SetMarkerColor(2);
-        PrNegphi->DrawCopy("Esame");
-        c4->cd();
+        pa4->Draw();             
+        pa4->cd();               
+        KPiPosphi->SetLineColor(3);
+        KPiPosphi->SetMarkerStyle(23);
+        KPiPosphi->SetMarkerColor(3);
+        KPiPosphi->SetTitle(" ");
+        KPiPosphi->DrawCopy();
+        KPiNegphi->SetLineColor(8);
+        KPiNegphi->SetMarkerStyle(26);
+        KPiNegphi->SetMarkerColor(8);
+        KPiNegphi->DrawCopy("Esame");
+        c4->cd(1);
         L4->Draw();
-
+        //                           Lambdas
+        c4->cd(2);
+        TPad *pad41 = new TPad("pad41", "pad41", 0., 0., 0.3, 0.9);
+        pad41->SetBottomMargin(0.15); 
+        pad41->SetLeftMargin(0.15);
+	pad41->SetRightMargin(0.1);
+        pad41->Draw();             
+        pad41->cd();               
+        LPrPospt->GetXaxis()->SetRangeUser(0,15);
+	LPrPospt->SetLineColor(1);
+        LPrPospt->SetMarkerColor(1);
+        LPrPospt->SetMarkerStyle(23);
+        LPrPospt->SetTitle(" ");
+        LPrPospt->DrawCopy();
+        LPiNegpt->SetLineColor(13);
+        LPiNegpt->SetMarkerStyle(26);
+        LPiNegpt->SetMarkerColor(13);
+        LPiNegpt->DrawCopy("Esame");
+        c4->cd(2);
+        TPad *p41 = new TPad("pa41", "pa41", 0.3, 0., 0.6, 0.9);
+        p41->SetBottomMargin(0.15); 
+        p41->SetLeftMargin(0.15);
+	p41->SetRightMargin(0.1);
+        p41->Draw();            
+        p41->cd();              
+	LPrPoseta->SetLineColor(1);
+        LPrPoseta->SetMarkerColor(1);
+        LPrPoseta->SetMarkerStyle(23);
+        LPrPoseta->SetTitle(" ");
+        LPrPoseta->DrawCopy();
+        LPiNegeta->SetLineColor(13);
+        LPiNegeta->SetMarkerStyle(26);
+        LPiNegeta->SetMarkerColor(13);
+        LPiNegeta->DrawCopy("Esame");
+        c4->cd(2);
+        TPad *pa41 = new TPad("pa41", "pa41", 0.6, 0., 0.9, 0.9);
+        pa41->SetBottomMargin(0.15); 
+        pa41->SetLeftMargin(0.15);
+	pa41->SetRightMargin(0.1);
+        pa41->Draw();             
+        pa41->cd();                
+	LPrPosphi->SetLineColor(1);
+        LPrPosphi->SetMarkerColor(1);
+        LPrPosphi->SetMarkerStyle(23);
+        LPrPosphi->SetTitle(" ");
+        LPrPosphi->DrawCopy();
+        LPiNegphi->SetLineColor(13);
+        LPiNegphi->SetMarkerStyle(26);
+        LPiNegphi->SetMarkerColor(13);
+        LPiNegphi->DrawCopy("Esame");
+        c4->cd(2);
+        L41->Draw();
+        c4->cd(3);
+        //                           Anti Lambdas
+        TPad *pad42 = new TPad("pad42", "pad42", 0., 0., 0.3, 0.9);
+        pad42->SetBottomMargin(0.15); 
+        pad42->SetLeftMargin(0.15);
+	pad42->SetRightMargin(0.1);
+        pad42->Draw();             
+        pad42->cd();               
+        ALPiPospt->GetXaxis()->SetRangeUser(0,15);
+	ALPiPospt->SetLineColor(2);
+        ALPiPospt->SetMarkerColor(2);
+        ALPiPospt->SetMarkerStyle(23);
+        ALPiPospt->SetTitle(" ");
+        ALPiPospt->DrawCopy();
+        ALPrNegpt->SetLineColor(46);
+        ALPrNegpt->SetMarkerStyle(26);
+        ALPrNegpt->SetMarkerColor(46);
+        ALPrNegpt->DrawCopy("Esame");
+        c4->cd(3);
+        TPad *p42 = new TPad("pa42", "pa42", 0.3, 0., 0.6, 0.9);
+        p42->SetBottomMargin(0.15); 
+        p42->SetLeftMargin(0.15);
+	p42->SetRightMargin(0.1);
+        p42->Draw();            
+        p42->cd();              
+	ALPiPoseta->SetLineColor(2);
+        ALPiPoseta->SetMarkerColor(2);
+        ALPiPoseta->SetMarkerStyle(23);
+        ALPiPoseta->SetTitle(" ");
+        ALPiPoseta->DrawCopy();
+        ALPrNegeta->SetLineColor(46);
+        ALPrNegeta->SetMarkerStyle(26);
+        ALPrNegeta->SetMarkerColor(46);
+        ALPrNegeta->DrawCopy("Esame");
+        c4->cd(3);
+        TPad *pa42 = new TPad("pa42", "pa42", 0.6, 0., 0.9, 0.9);
+        pa42->SetBottomMargin(0.15); 
+        pa42->SetLeftMargin(0.15);
+	pa42->SetRightMargin(0.1);
+        pa42->Draw();            
+        pa42->cd();               
+	ALPiPosphi->SetLineColor(2);
+        ALPiPosphi->SetMarkerColor(2);
+        ALPiPosphi->SetMarkerStyle(23);
+        ALPiPosphi->SetTitle(" ");
+        ALPiPosphi->DrawCopy();
+        ALPrNegphi->SetLineColor(46);
+        ALPrNegphi->SetMarkerStyle(26);
+        ALPrNegphi->SetMarkerColor(46);
+        ALPrNegphi->DrawCopy("Esame");
+        c4->cd(3);
+        L42->Draw();
         c4->SaveAs("plots/qaV0Daughters.pdf");
 
         TH1F *VRpt = (TH1F*) AResult->Get("correlationvzerojets/hPtTrackV0inRadius");
@@ -310,20 +398,20 @@ void qaPlots(){
         L2->SetBorderSize(0);
         L2->SetFillStyle(0);
         
-        TCanvas *c2 = new TCanvas("c2", "V0 process", 1200, 800); //they are on top of each other
+        TCanvas *c2 = new TCanvas("c2", "V0 process", 1200, 800); 
         c2->Divide(3,2);
         c2->cd(1);
         c2->SetTopMargin(0.1);
-        VRpt->SetTitle("");
-        VRpt->GetXaxis()->SetRangeUser(0,10);
-        VRpt->SetLineColor(1);
-        VRpt->SetMarkerStyle(32);
-        VRpt->SetMarkerColor(1);
-        VRpt->Draw("E");
+        Vpt->SetTitle("");
+        Vpt->GetXaxis()->SetRangeUser(0,10);
         Vpt->SetLineColor(2);
         Vpt->SetMarkerStyle(26);
         Vpt->SetMarkerColor(2);
-        Vpt->Draw("same");
+        Vpt->Draw("E");
+        VRpt->SetLineColor(1);
+        VRpt->SetMarkerStyle(32);
+        VRpt->SetMarkerColor(1);
+        VRpt->Draw("same");
         c2->cd(2);
         c2->SetTopMargin(0.1);
         Ve->SetTitle("");
@@ -401,45 +489,45 @@ void qaPlots(){
 	pa->SetRightMargin(0.1);
         pa->Draw();             // Draw the upper pad: pad1
         pa->cd();               // pad1 becomes the current pad
-	LTpt->GetXaxis()->SetRangeUser(0,10);
-        LTpt->GetYaxis()->SetRangeUser(0,120000);
-	LTpt->SetLineColor(1);
-        LTpt->SetMarkerStyle(23);
-        LTpt->SetTitle(" ");
-        LTpt->DrawCopy();
+	JVpt->GetXaxis()->SetRangeUser(0,10);
+        //JVpt->GetYaxis()->SetRangeUser(0,120000);
+	JVpt->SetLineColor(2);
+        JVpt->SetMarkerStyle(26);
+        JVpt->SetMarkerColor(2);
+        JVpt->SetTitle(" ");
+        JVpt->DrawCopy();
         LJpt->SetLineColor(3);
         LJpt->SetMarkerStyle(26);
         LJpt->SetMarkerColor(3);
         LJpt->DrawCopy("Esame");
-        JVpt->SetLineColor(2);
-        JVpt->SetMarkerStyle(26);
-        JVpt->SetMarkerColor(2);
-        JVpt->DrawCopy("Esame");
+        LTpt->SetLineColor(1);
+        LTpt->SetMarkerStyle(23);
+        LTpt->SetMarkerColor(1);
+        LTpt->DrawCopy("Esame");
         JVCpt->SetLineColor(2);
         JVCpt->SetMarkerStyle(32);
         JVCpt->SetMarkerColor(2);
         JVCpt->DrawCopy("Esame");
- 
         c3->cd();
         TPad *pa2 = new TPad("pa2", "pa2", 0.3, 0., 0.6, 0.9);
         pa2->SetBottomMargin(0.15); 
         pa2->SetLeftMargin(0.15);
 	pa2->SetRightMargin(0.1);
-        pa2->Draw();             // Draw the upper pad: pad1
-        pa2->cd();               // pad1 becomes the current pad
-        LTe->GetYaxis()->SetRangeUser(0,2200);
-	LTe->SetLineColor(1);
-        LTe->SetMarkerStyle(23);
-        LTe->SetTitle(" ");
-        LTe->DrawCopy();
+        pa2->Draw();             
+        pa2->cd();               
+	JVe->SetLineColor(2);
+        JVe->SetMarkerStyle(26);
+        JVe->SetMarkerColor(2);
+        JVe->SetTitle(" ");
+        JVe->DrawCopy();
         LJe->SetLineColor(3);
         LJe->SetMarkerStyle(26);
         LJe->SetMarkerColor(3);
         LJe->DrawCopy("Esame");
-        JVe->SetLineColor(2);
-        JVe->SetMarkerStyle(26);
-        JVe->SetMarkerColor(2);
-        JVe->DrawCopy("Esame");
+        LTe->SetLineColor(1);
+        LTe->SetMarkerStyle(23);
+        LTe->SetMarkerColor(1);
+        LTe->DrawCopy("Esame");
         JVCe->SetLineColor(2);
         JVCe->SetMarkerStyle(32);
         JVCe->SetMarkerColor(2);
@@ -450,21 +538,22 @@ void qaPlots(){
         pa3->SetBottomMargin(0.15); 
         pa3->SetLeftMargin(0.15);
 	pa3->SetRightMargin(0.1);
-        pa3->Draw();             // Draw the upper pad: pad1
-        pa3->cd();               // pad1 becomes the current pad
-        LTphi->GetYaxis()->SetRangeUser(0,1800);
-        LTphi->SetLineColor(1);
-        LTphi->SetMarkerStyle(23);
-        LTphi->SetTitle(" ");
-        LTphi->DrawCopy();
+        pa3->Draw();             
+        pa3->cd();               
+        JVphi->GetYaxis()->SetRangeUser(0,5500);
+        JVphi->SetLineColor(2);
+        JVphi->SetMarkerStyle(26);
+        JVphi->SetMarkerColor(2);
+        JVphi->SetTitle(" ");
+        JVphi->DrawCopy();
         LJphi->SetLineColor(3);
         LJphi->SetMarkerStyle(26);
         LJphi->SetMarkerColor(3);
         LJphi->DrawCopy("Esame");
-        JVphi->SetLineColor(2);
-        JVphi->SetMarkerStyle(26);
-        JVphi->SetMarkerColor(2);
-        JVphi->DrawCopy("Esame");
+        LTphi->SetLineColor(1);
+        LTphi->SetMarkerStyle(23);
+        LTphi->SetMarkerColor(1);
+        LTphi->DrawCopy("Esame");
         JVCphi->SetLineColor(2);
         JVCphi->SetMarkerStyle(32);
         JVCphi->SetMarkerColor(2);
@@ -473,5 +562,4 @@ void qaPlots(){
         L3->Draw();
 
         c3->SaveAs("plots/qaJets.pdf");
-
 }
