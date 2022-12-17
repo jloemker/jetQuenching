@@ -9,10 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \Marta said: use the V0s as starting point for jet clustering, not their decay products (pions) and try to get angular distance from leading jet momentum to V0 candidate
-//		-> should ask how the track tables from the jet process and v0 process are now related bc I assume the jet finder might mere things ?
-//		! the track pt sprectrum from all tracks is enourmous and the constituent track and full jet pt are small
-/// \author
+//  \author
 //	Johanna Lömker
 //	to run (step vzerotemplateexample): check the run.sh and config.json
 //
@@ -57,8 +54,8 @@ using CombinedTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, 
 struct correlationvzerojets{
   //configurables for collision and track filter ! Crosscheck with configurables applied when using the jet finder
   Configurable<float> vertexZCut{"vertexZCut", 10.0f, "Accepted z-vertex range"};
-  Configurable<float> trackPtCut{"trackPtCut", 0.1, "minimum constituent pT"};
-  Configurable<float> trackEtaCut{"trackEtaCut", 0.9, "constituent eta cut"};//corresponds to TPCVolume in triggerQA
+  Configurable<float> trackPtCutMin{"trackPtCut", 0.1, "minimum constituent pT"};
+  Configurable<float> trackEtaCut{"trackEtaCut", 0.8, "constituent eta cut"};//corresponds to TPCVolume in triggerQA
  
   //configurables for jets
   Configurable<float> JetR{"JetR", 0.4, "jet resolution parameter"}; // jet cone radius
@@ -66,11 +63,17 @@ struct correlationvzerojets{
   Configurable<int> bTriggerDecision{"bTriggerDecision", 0,"Charged Jet Trigger Decision Selection"}; // 0=MB Event, 1=Event selected by EPN
 
   //configurables for the V0 identification of lambda and K0short through  selection criteria on daughters
-  Configurable<double> v0cospa{"v0cospa", 0.97, "V0 CosPA" };// double -> N.B. dcos(x)/dx = 0 at x=0  what is this ??
-  Configurable<float> dcav0dau{"dcav0dau", 1.0, "DCA V0 Daughters"};
-  Configurable<float> dcanegtopv{"dcanegtopv", -1, "DCA Neg To PV"};
-  Configurable<float> dcapostopv{"dcapostopv", -1, "DCA Pos To PV"};//why would they also put -1: bc this is the initiaization, updated in process du dummy 
-  Configurable<float> v0radius{"v0radius", 3, "v0radius"};//minium decay length - irrelevant bc i set 4 in pre-selection
+  //Configurable<double> v0cospa{"v0cospa", 0.9, "V0 CosPA in prefilter" }; 
+  Configurable<float> V0daugPtMin{"V0daugPtMin", 1, "Minimum pt of daughter tracks"};
+  Configurable<float> V0ptMin{"V0ptMin", 0.6, "MinimumV0pt"};
+  Configurable<float> V0ptMax{"V0pTMax", 20, "MaximumV0pt"}; 
+  Configurable<double> v0cospaLamb{"v0cospaLamb", 0.995, "V0 CosPA Lambda" };// double -> N.B. dcos(x)/dx = 0 at x=0 
+  Configurable<double> v0cospaK0s{"v0cospaK0s", 0.97, "V0 CosPA Kaons" };
+  Configurable<float> dcav0dau{"dcav0dau", 1.0, "DCA V0 Daughters"};//dca between daughters in sigma units
+  Configurable<float> dcanegtopv{"dcanegtopv", 0.06, "DCA Neg To PV"};
+  Configurable<float> dcapostopv{"dcapostopv", 0.06, "DCA Pos To PV"};//why would they also put -1: bc this is the initiaization, updated in process du dummy 
+  Configurable<float> MinV0radius{"MinV0radius", 5, "minimum cut on v0radius"};//minium decay length - irrelevant bc i set 4 in pre-selection
+  Configurable<float> MaxV0radius{"MaxV0radius", 200, "maximum cut on v0radius"};
 
   Configurable<int> nBins{"nBins", 200, "N bins in histos"};
   Configurable<int> nBinsPt{"nBinsPt", 200, "N bins in pT histos"};
@@ -83,8 +86,8 @@ struct correlationvzerojets{
   JetFinder jetReclusterer;
 
   Filter collisionFilter = nabs(aod::collision::posZ) < vertexZCut;
-  Filter trackFilter = (nabs(aod::track::eta) < trackEtaCut) && (requireGlobalTrackInFilter()) && (aod::track::pt > trackPtCut);//here also a max and then i can evaluate in different pt bins - see literature for proper ranges
-  Filter preFilterV0 = nabs(aod::v0data::dcapostopv) > dcapostopv&& nabs(aod::v0data::dcanegtopv) > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;//enable in next check
+  Filter trackFilter = (nabs(aod::track::eta) < trackEtaCut) && (requireGlobalTrackInFilter()) && (aod::track::pt > trackPtCutMin);//here also a max and then i can evaluate in different pt bins - see literature for proper ranges
+  Filter preFilterV0 = nabs(aod::v0data::dcapostopv) > dcapostopv&& nabs(aod::v0data::dcanegtopv) > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
   
   // TrackSelection globalTracks;
   void init(o2::framework::InitContext&)
@@ -103,21 +106,21 @@ struct correlationvzerojets{
     "registry",
     {
       {"hCollVtxZ", "hCollisionVtxZ", {HistType::kTH1F, {{nBins, -15., 15.}}}},
-      {"hV0radius", "hV0radius", {HistType::kTH1F, {{nBins, 0., 100.}}}},
+      {"hV0radius", "hV0radius", {HistType::kTH1F, {{nBins, 0., 200.}}}},
       {"hV0cospa", "hV0cospa", {HistType::kTH1F, {{nBins, 0.8, 1.1}}}},
 
       {"hMK0Short", "hMK0Short; M (GeV/#it{c})", {HistType::kTH1F, {{nBins, 0, 4}}}},
-      {"hPtK0Short", "if K0Short : v0.pt()  p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
+      {"hPtK0Short", "if K0Short : v0.pt()  p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 20}}}},
       {"hEtaK0Short", "if K0Short : v0.eta() #eta; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
       {"hPhiK0Short", "if K0Short : v0.phi() #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
 
       {"hMLambda", "hMLambda; M (GeV/#it{c})", {HistType::kTH1F, {{nBins, 0, 4}}}},
-      {"hPtLambda", "if Lambda : v0.pt()  p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
+      {"hPtLambda", "if Lambda : v0.pt()  p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 20}}}},
       {"hEtaLambda", "if Lambda : v0.eta() #eta; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
       {"hPhiLambda", "if Lambda : v0.phi() #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
 
       {"hMAntiLambda", "hMAntiLambda; M (GeV/#it{c})", {HistType::kTH1F, {{nBins, 0, 4}}}},
-      {"hPtAntiLambda", "if AntiLambda : v0.pt()  p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
+      {"hPtAntiLambda", "if AntiLambda : v0.pt()  p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 20}}}},
       {"hEtaAntiLambda", "if AntiLambda : v0.eta() #eta; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
       {"hPhiAntiLambda", "if AntiLambda : v0.phi() #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
 
@@ -141,7 +144,7 @@ struct correlationvzerojets{
       {"hALPhiPosPion", "AntiLambda PosPion; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
       {"hALPhiNegPr", "AntiLambda NegPr; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
       //Analysis plots - adjust binning and normalize that stuff ... something with integral ... move this whole shabang to the plotting script
-      {"LambdaOverKaonPt", "(Lambda + AntiLambda)/2K p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 60}}}},
+      {"LambdaOverKaonPt", "(Lambda + AntiLambda)/2K p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 20}}}},
 
       //control plots	
       {"MdeltaPhi", "Martas #Delta #phi; #phi", {HistType::kTH1F, {{nBinsPhi, -3.2, 6.3}}}},
@@ -188,28 +191,6 @@ struct correlationvzerojets{
     }
   };
 
-  //or this to compute delta phi
-  Double_t ComputeDeltaPhi( Double_t phi1, Double_t phi2) {
-    //To be completely sure, use inner products to get delta phi = phi1-phi2
-    Double_t x1, y1, x2, y2;
-    x1 = TMath::Cos( phi1 );
-    y1 = TMath::Sin( phi1 );
-    x2 = TMath::Cos( phi2 );
-    y2 = TMath::Sin( phi2 );
-    Double_t lInnerProd = x1*x2 + y1*y2;
-    Double_t lVectorProd = x1*y2 - x2*y1;
-    Double_t lReturnVal = 0;
-    if( lVectorProd > 1e-8 ) {
-      lReturnVal = TMath::ACos(lInnerProd);
-    }
-    if( lVectorProd < -1e-8 ) {
-      lReturnVal = -TMath::ACos(lInnerProd);
-    }
-    if( lReturnVal < -TMath::Pi()/2. ) {
-      lReturnVal += 2.*TMath::Pi();
-    }
-    return lReturnVal;
-  }
   //I think a second struct where i process jets withit the dca filter is required.. then I could compare jets with and without ?..hmm..
   void Jet(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::JetFilters>>::iterator const& collision, soa::Filtered<CombinedTracks> const& tracks, aod::V0Datas const& V0s)//figure out why only aod::Tracks or MyTracks and/or if they are th same
   { 
@@ -294,7 +275,6 @@ struct correlationvzerojets{
             if(dPhi > fastjet::pi ){ dPhi -= 2*fastjet::pi;}
             if(dPhi < -fastjet::pi ){ dPhi += 2*fastjet::pi;}
             registry.fill(HIST("MdeltaPhi"), dPhi);
-            registry.fill(HIST("JdeltaPhi"), ComputeDeltaPhi(leadingJetPhi,v0.phi()));//this is the dPhi from the turtorial in Oct.
             registry.fill(HIST("hdeltaEta"), leadingJetEta-v0.eta() );
 	          angularDistance = sqrt(pow(leadingJetEta-v0.eta(),2) + pow(dPhi,2) );//this is the correct dPhi that I use from now on
 	          registry.fill(HIST("AngularDistance"), angularDistance);
@@ -318,15 +298,24 @@ struct correlationvzerojets{
       //particle identification by using the tpcNSigma track variable
       //in principle i could try the same with tofNSigma - if I include tof in my tracks ... good or bad -> gonna ask ...
       float nsigma_pos_proton = TMath::Abs(v0.posTrack_as<CombinedTracks>().tpcNSigmaPr());// o2::aod::pidtpc::TPCNSigmaPr 	|	tpcNSigmaPr |	float |	Nsigma separation with the TPC detector for proton
-      float nsigma_neg_proton = TMath::Abs(v0.negTrack_as<CombinedTracks>().tpcNSigmaPr());
+      float nsigma_neg_proton = TMath::Abs(v0.negTrack_as<CombinedTracks>().tpcNSigmaPr());// this is the TPC dE/dx, for 22 < 4; for 2017/2018 < 5 !
       float nsigma_pos_pion = TMath::Abs(v0.posTrack_as<CombinedTracks>().tpcNSigmaPi());// o2::aod::pidtpc::TPCNSigmaPi 	|	tpcNSigmaPi |	float |	Nsigma separation with the TPC detector for pion
       float nsigma_neg_pion = TMath::Abs(v0.negTrack_as<CombinedTracks>().tpcNSigmaPi());
 
-      //get v0.radius distribution
-      registry.fill(HIST("hV0radius"), v0.v0radius());
-      registry.fill(HIST("hV0cospa"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()));
-      if(v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa ){
-        if( nsigma_pos_pion < 4 && nsigma_neg_pion < 4 ){
+      if( v0.posTrack_as<CombinedTracks>().pt() > V0daugPtMin && v0.negTrack_as<CombinedTracks>().pt() > V0daugPtMin){
+      if(v0.v0radius() > MinV0radius && v0.v0radius() < MaxV0radius && v0.pt() < V0ptMax && v0.pt() > V0ptMin) {//v0 radius and pT bin cuts
+        //get citted v0.radius distribution
+        registry.fill(HIST("hV0radius"), v0.v0radius());
+        registry.fill(HIST("hV0cospa"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()));
+
+        //for invariant mass rejection as function of pT
+        float upperLambda = 1.13688 + 0.00527838*v0.pt() + 0.084222*exp(-3.80595*v0.pt());
+        float lowerLambda = 1.09501 - 0.00523272*v0.pt() - 0.075269*exp(-3.46339*v0.pt()); 
+        float upperKaon = 0.563707 + 0.0114979*v0.pt();
+        float lowerKaon = 0.43006 - 0.0110029*v0.pt();
+        
+        if( nsigma_pos_pion < 5 && nsigma_neg_pion < 5 && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospaK0s ){//topological daughter cut
+          if(v0.mK0Short() > upperKaon || v0.mK0Short() < lowerKaon ){continue;}
           registry.fill(HIST("hMK0Short"), v0.mK0Short());
 	        registry.fill(HIST("hPtK0Short"), v0.pt());
 	        registry.fill(HIST("hEtaK0Short"), v0.eta());
@@ -339,7 +328,8 @@ struct correlationvzerojets{
           registry.fill(HIST("hKPhiPosPion"), v0.posTrack_as<CombinedTracks>().phi()); 
           registry.fill(HIST("hKPhiNegPion"), v0.negTrack_as<CombinedTracks>().phi()); 
        	}
-	      if( nsigma_pos_proton < 4 && nsigma_neg_pion < 4){// !!! this was the major issue
+	      if( nsigma_pos_proton < 5 && nsigma_neg_pion < 5 && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospaLamb ){
+          if(v0.mLambda() > upperLambda || v0.mLambda() < lowerLambda ){continue;}
           registry.fill(HIST("hMLambda"), v0.mLambda());
 	        registry.fill(HIST("hPtLambda"), v0.pt());
           registry.fill(HIST("hEtaLambda"), v0.eta());
@@ -352,7 +342,8 @@ struct correlationvzerojets{
           registry.fill(HIST("hLPhiPosPr"), v0.posTrack_as<CombinedTracks>().phi()); 
           registry.fill(HIST("hLPhiNegPi"), v0.negTrack_as<CombinedTracks>().phi()); 
 	      }
-	      if( nsigma_pos_pion < 4 && nsigma_neg_proton < 4){
+	      if( nsigma_pos_pion < 5 && nsigma_neg_proton < 5 && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospaLamb ){
+          if(v0.mAntiLambda() > upperLambda || v0.mAntiLambda() < lowerLambda ){continue;}
           registry.fill(HIST("hMAntiLambda"), v0.mAntiLambda());	
 	        registry.fill(HIST("hPtAntiLambda"), v0.pt());
           registry.fill(HIST("hEtaAntiLambda"), v0.eta());
@@ -369,11 +360,12 @@ struct correlationvzerojets{
         registry.fill(HIST("hPtTrackV0inRadius"), v0.pt());
         registry.fill(HIST("hEtaTrackV0inRadius"), v0.eta());
         registry.fill(HIST("hPhiTrackV0inRadius"), v0.phi());
-	    }//to have control plots for the V0 in the jet iteration above
+	    }//if in v0 radius
 	    registry.fill(HIST("hPtV0"), v0.pt());
 	    registry.fill(HIST("hEtaV0"), v0.eta());
       registry.fill(HIST("hPhiV0"), v0.phi());
-    }	
+    }//if in pT daughter range
+    }//end of V0's	
  
     for(auto& track : tracks){//Check kinematics of tracks
       if (!track.isQualityTrack()) {
