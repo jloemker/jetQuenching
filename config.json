@@ -116,10 +116,10 @@
         "dcapostopv": "0.1",
         "v0radius": "3",
         "nBins": "200",
-        "nBinsPt": "200",
+        "nBinsPt": "400",
         "nBinsEta": "200",
         "nBinsPhi": "200",
-        "Jet": "true",
+        "Jet": "false",
         "V0": "true"
     },
     "internal-dpl-aod-global-analysis-file-sink": "",
