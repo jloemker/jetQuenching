@@ -83,7 +83,7 @@ struct correlationvzerojets{
   JetFinder jetReclusterer;
 
   Filter collisionFilter = nabs(aod::collision::posZ) < vertexZCut;
-  Filter trackFilter = (nabs(aod::track::eta) < trackEtaCut) && (requireGlobalTrackInFilter()) && (aod::track::pt > trackPtCut);
+  Filter trackFilter = (nabs(aod::track::eta) < trackEtaCut) && (requireGlobalTrackInFilter()) && (aod::track::pt > trackPtCut);//here also a max and then i can evaluate in different pt bins - see literature for proper ranges
   Filter preFilterV0 = nabs(aod::v0data::dcapostopv) > dcapostopv&& nabs(aod::v0data::dcanegtopv) > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;//enable in next check
   
   // TrackSelection globalTracks;
@@ -144,8 +144,8 @@ struct correlationvzerojets{
       {"LambdaOverKaonPt", "(Lambda + AntiLambda)/2K p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 60}}}},
 
       //control plots	
-      {"MdeltaPhi", "Martas #Delta #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
-      {"JdeltaPhi", "Johannas #Delta #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
+      {"MdeltaPhi", "Martas #Delta #phi; #phi", {HistType::kTH1F, {{nBinsPhi, -3.2, 6.3}}}},
+      {"JdeltaPhi", "Johannas #Delta #phi; #phi", {HistType::kTH1F, {{nBinsPhi, -3.2, 6.3}}}},
       {"hdeltaEta", "#Delta #eta; #eta", {HistType::kTH1F, {{nBinsEta, -2, 2}}}},
       {"V0CollIdVsGlobIndex", " V0.CollId vs. coll.GlobalIndex; V0.CollId; coll.GlobalIndex", {HistType::kTH2F, {{100, 0, 100}, {100, 0, 100}}}},
       {"V0CollIdVsV0GlobIndex", " V0.CollId vs. V0.GlobalIndex; V0.CollId; V0.GlobalIndex", {HistType::kTH2F, {{100, 0, 100}, {100, 0, 100}}}},
@@ -283,16 +283,16 @@ struct correlationvzerojets{
           registry.fill(HIST("V0CollIdVsGlobIndex"), v0.collisionId(), collision.globalIndex());
           registry.fill(HIST("V0CollIdVsV0GlobIndex"), v0.globalIndex(), collision.globalIndex());
           registry.fill(HIST("V0GlobVsCollGlobIndex"), v0.collisionId(), v0.globalIndex());
-          if(v0.globalIndex() == collision.globalIndex()){
+          //if(v0.globalIndex() == collision.globalIndex()){
           // from V0 table o2::aod::v0::CollisionId |	I |	collisionId |	int32 |	Collision index oooor: o2::soa::Index |	GI |	globalIndex |	int64_t
           // from collision table o2::soa::Index |	GI |	globalIndex |	int64_t
-          //if(v0.collisionId() == collision.globalIndex()){
+          if(v0.collisionId() == collision.globalIndex()){
             registry.fill(HIST("jetWithV0Pt"), v0.pt());
             registry.fill(HIST("jetWithV0Eta"), v0.eta());
             registry.fill(HIST("jetWithV0Phi"), v0.phi());
             float dPhi = leadingJetPhi - v0.phi();//fast jet uses -pi to pi azimuthal range while Alice uses 0 to 2pi 
-            if(dPhi > 2*fastjet::pi ){ dPhi -= 2*fastjet::pi;}
-            if(dPhi < 0 ){ dPhi += 2*fastjet::pi;}
+            if(dPhi > fastjet::pi ){ dPhi -= 2*fastjet::pi;}
+            if(dPhi < -fastjet::pi ){ dPhi += 2*fastjet::pi;}
             registry.fill(HIST("MdeltaPhi"), dPhi);
             registry.fill(HIST("JdeltaPhi"), ComputeDeltaPhi(leadingJetPhi,v0.phi()));//this is the dPhi from the turtorial in Oct.
             registry.fill(HIST("hdeltaEta"), leadingJetEta-v0.eta() );
