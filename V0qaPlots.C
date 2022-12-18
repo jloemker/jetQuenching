@@ -1,39 +1,26 @@
 //Add the Lamber over kaon - normalize the ratio ! newPtb->Scale(1/Nb->Integral()) -> ok, not required anymore .. but why is the error so large ?;
-void qaPlots(){
+void V0qaPlots(){
         TString input;
         //Output the Histos from correlationV0jet - the lambda over kaon, angular distance are not in here, but all qa's 
-        TFile *AResult = new TFile("/home/johannalomker/alice/analysis/jetQuenching/AnalysisV0CollisionId.root");
+        //TFile *AResult = new TFile("/home/johannalomker/alice/analysis/jetQuenching/AnalysisResultsNoPtcut.root");
+        TFile *Result1 = new TFile("/home/johannalomker/alice/analysis/jetQuenching/AnalysisResultsNoPtcut.root");
+        TString input1 = "/home/johannalomker/alice/analysis/jetQuenching/AnalysisResultsNoPtcut.root";
+        TFile *Result2 = new TFile("/home/johannalomker/alice/analysis/jetQuenching/AnalysisResultsNoDaughPtMin02.root");
+        TString input2 = "/home/johannalomker/alice/analysis/jetQuenching/AnalysisResultsNoDaughPtMin02.root";
+        TFile *Result3 = new TFile("/home/johannalomker/alice/analysis/jetQuenching/AnalysisResultsNoDaughPtMin04.root");
+        TString input3 = "/home/johannalomker/alice/analysis/jetQuenching/AnalysisResultsNoDaughPtMin04.root";
+        TFile *Result4 = new TFile("/home/johannalomker/alice/analysis/jetQuenching/AnalysisResultsNoDaughPtMin06.root");
+        TString input4 = "/home/johannalomker/alice/analysis/jetQuenching/AnalysisResultsNoDaughPtMin06.root";
+        //TFile *AResult = new TFile("/home/johannalomker/alice/analysis/jetQuenching/AnalysisV0CollisionId.root");
         //TFile *AResult = new TFile("/home/johannalomker/alice/analysis/jetQuenching/AnalysisV0GlobalIndex.root");
-        
-        //Output the Histos from jet-filter
-        TH2F *PtEtaGood2T = (TH2F*) AResult->Get("jet-filter/spectra/ptetaGoodTracks");
-        TH2F *PtEtaRej2T = (TH2F*) AResult->Get("jet-filter/spectra/ptetaRejectedTracks");
-        TH2F *PtEtaSel2CJ = (TH2F*) AResult->Get("jet-filter/spectra/ptetaJetChSelected");
 
-        TH2F *PtPhiGood2T = (TH2F*) AResult->Get("jet-filter/spectra/ptphiGoodTracks");
-        TH2F *PtPhiRej2T = (TH2F*) AResult->Get("jet-filter/spectra/ptphiRejectedTracks");
-        TH2F *PtPhiSel2CJ = (TH2F*) AResult->Get("jet-filter/spectra/ptphiJetChSelected");
-
-        TH1F *CollZpos = (TH1F*) AResult->Get("jet-filter/spectra/fCollZpos");
-        TH1F *NProcessed = (TH1F*) AResult->Get("jet-filter/spectra/fProcessedEvents");
-
-        TCanvas *c = new TCanvas("c0", "canvas", 800, 400);
-        c->Divide(2);
-        c->cd(1);
-        CollZpos->Draw("E");
-        c->cd(2);
-        NProcessed->Draw("E");
-        c->SaveAs("plots/NPosZ.pdf");
+        TFile *AResult = new TFile(input1);; 
 
         //correlationvzerojets (no subdir)
         TH1F *VtxZ = (TH1F*) AResult->Get("correlationvzerojets/hCollVtxZ");
-        TH1F *VtxZjets = (TH1F*) AResult->Get("correlationvzerojets/jetVtx");
 
         TCanvas *can = new TCanvas("can", "vtx", 800, 400);
         can->Divide(2,1);
-        can->cd(1);
-        VtxZjets->SetTitle("Vtx Z Jets process");
-        VtxZjets->Draw("E");
         can->cd(2);
         VtxZ->SetTitle("Vtx Z V0 process");
         VtxZ->Draw("E");
@@ -44,8 +31,10 @@ void qaPlots(){
         TCanvas *can3 = new TCanvas("can3", "V0 cut variables", 800, 400);
         can3->Divide(2,1);
         can3->cd(1);
+        V0radius->GetYaxis()->SetTitle("Number of entries");
         V0radius->Draw("E");
         can3->cd(2);
+        cosPA->GetYaxis()->SetTitle("Number of entries");
         cosPA->Draw("E");
         can3->SaveAs("plots/V0radiusAndCospa.pdf");
 
@@ -56,27 +45,22 @@ void qaPlots(){
         can4->Divide(2,1);
         can4->cd(1);
         J->SetTitle("#Delta #eta");
+        J->GetYaxis()->SetTitle("Number of entries");
         J->Draw("E");
         can4->cd(2);
+        M->GetYaxis()->SetTitle("Number of entries");
         M->SetTitle("#Delta #Phi");
         M->Draw("E");
         can4->SaveAs("plots/DeltaPhiEta.pdf");
 
-        //to understand what these indeces in jets are
-        TH2F *VColGlob = (TH2F*) AResult->Get("correlationvzerojets/V0CollIdVsGlobIndex");
-        TH2F *VColVGlob = (TH2F*) AResult->Get("correlationvzerojets/V0CollIdVsV0GlobIndex");
-        TH2F *VGlobGlob = (TH2F*) AResult->Get("correlationvzerojets/V0GlobVsCollGlobIndex");
-        TCanvas *V = new TCanvas("V", "Index", 900, 400);
-        V->Divide(3,1);
-        V->cd(1);
-        VColGlob->Draw("COLZ");
-        V->cd(2);
-        VColVGlob->Draw("COLZ");
-        V->cd(3);
-        VGlobGlob->Draw("COLZ");
-        V->SaveAs("plots/IndexMystery.pdf");        
-
         gStyle -> SetOptStat(0);
+for(int i = 0; i<5; i++){
+        TString result;
+        if(i == 0){AResult = new TFile(input1);}
+        if(i == 1){AResult = new TFile(input2);}
+        if(i == 2){AResult = new TFile(input3);}
+        if(i == 3){AResult = new TFile(input4);}
+                
         //V0 observables (Mass, pT, phi, eta)
         TH1F *MK = (TH1F*) AResult->Get("correlationvzerojets/hMK0Short");
         TH1F *ML = (TH1F*) AResult->Get("correlationvzerojets/hMLambda");
@@ -104,10 +88,18 @@ void qaPlots(){
         L1->SetBorderSize(0);
         L1->SetFillStyle(0);
 
-        TCanvas *c1 = new TCanvas("c1", "canvas", 800, 800);
+        TCanvas *c1 = new TCanvas("c1", "canvas", 800, 800);//here we need pads to set it properly logy()
         c1->Divide(2,2);
         c1->cd(1);
+        TPad *t = new TPad("t", "t", 0., 0., 1, 1);
+        t->SetBottomMargin(0.15); 
+        t->SetLeftMargin(0.15);
+	t->SetRightMargin(0.1);
+        t->Draw();          
+        t->cd();               
         MK->SetTitle("");
+        MK->GetYaxis()->SetTitleOffset(2);
+        MK->GetYaxis()->SetTitle("Number of entries");
         MK->SetLineColor(3);
         MK->GetXaxis()->SetRangeUser(0,3);
         MK->Draw();
@@ -116,6 +108,15 @@ void qaPlots(){
         ML->SetLineColor(1);
         ML->Draw("same");
         c1->cd(2);
+        TPad *t2 = new TPad("t2", "t2", 0., 0., 1, 1);
+        t2->SetBottomMargin(0.15); 
+        t2->SetLeftMargin(0.15);
+	t2->SetRightMargin(0.1);
+        t2->SetLogy();
+        t2->Draw();          
+        t2->cd();  
+        KPt->GetYaxis()->SetTitleOffset(2);
+        KPt->GetYaxis()->SetTitle("Number of entries");
         KPt->SetTitle("");
         KPt->GetXaxis()->SetRangeUser(0,10);
         KPt->SetLineColor(3);
@@ -125,8 +126,15 @@ void qaPlots(){
         ALPt->SetLineColor(2);
         ALPt->Draw("same");
         c1->cd(3); 
-        c1->SetLogy();
-        KPhi->GetYaxis()->SetRangeUser(0, 2500);
+        TPad *t3 = new TPad("t3", "t3", 0., 0., 1, 1);
+        t3->SetBottomMargin(0.15); 
+        t3->SetLeftMargin(0.15);
+	t3->SetRightMargin(0.1);
+        t3->Draw();          
+        t3->cd(); 
+        KPhi->GetYaxis()->SetTitleOffset(2);
+        KPhi->GetYaxis()->SetTitle("Number of entries");
+        //KPhi->GetYaxis()->SetRangeUser(0, 2500);
         KPhi->SetTitle("");
         KPhi->SetLineColor(3);
         KPhi->Draw();
@@ -136,6 +144,14 @@ void qaPlots(){
         ALPhi->SetLineColor(2);
         ALPhi->Draw("same");
         c1->cd(4);
+        TPad *t4 = new TPad("t4", "t4", 0., 0., 1, 1);
+        t4->SetBottomMargin(0.15); 
+        t4->SetLeftMargin(0.15);
+	t4->SetRightMargin(0.1);
+        t4->Draw();          
+        t4->cd();  
+        KEta->GetYaxis()->SetTitleOffset(2);
+        KEta->GetYaxis()->SetTitle("Number of entries");
         KEta->SetTitle("");
         KEta->SetLineColor(3);
         KEta->Draw();
@@ -145,7 +161,7 @@ void qaPlots(){
         ALEta->Draw("same");
         c1->cd();
         L1->Draw(" ");
-        c1->SaveAs("plots/V0Candidates.pdf");
+        c1->SaveAs(Form("plots/V0Candidates_input%i.pdf",i));
 
         //here I want to add my daughter track QA
         TH1F *KPiPospt = (TH1F*) AResult->Get("correlationvzerojets/hKPtPosPion");
@@ -196,22 +212,30 @@ void qaPlots(){
         L42->SetBorderSize(0);
         L42->SetFillStyle(0);
 
-        TCanvas *c4 = new TCanvas("c4", "V0 daughter tracks", 1200, 1200);
+        int N = 2;//rebin variable
+        int n = 2;//rebin phi
+        TCanvas *c4 = new TCanvas("c4", "V0 daughter tracks", 1200, 1200);//phi and eta need all rebin by N, with N as free choice here
         c4->Divide(1,3);
         c4->cd(1);
         TPad *pad4 = new TPad("pad4", "pad4", 0., 0., 0.3, 0.9);
         pad4->SetBottomMargin(0.15); 
         pad4->SetLeftMargin(0.15);
 	pad4->SetRightMargin(0.1);
+        pad4->SetLogy();
         pad4->Draw();             // Draw the upper pad: pad1
         pad4->cd();               // pad1 becomes the current pad
 	KPiPospt->GetXaxis()->SetRangeUser(0,15);
+        KPiPospt->Sumw2();
+        //KPiPospt->Rebin(n);
         //PiPospt->GetYaxis()->SetRangeUser(0,120000);
+        KPiPospt->GetYaxis()->SetTitle("Number of entries");
 	KPiPospt->SetLineColor(3);
         KPiPospt->SetMarkerColor(3);
         KPiPospt->SetMarkerStyle(23);
         KPiPospt->SetTitle(" ");
         KPiPospt->DrawCopy();
+        KPiNegpt->Sumw2();
+        //KPiNegpt->Rebin(n);
         KPiNegpt->SetLineColor(8);
         KPiNegpt->SetMarkerStyle(26);
         KPiNegpt->SetMarkerColor(8);
@@ -222,12 +246,17 @@ void qaPlots(){
         p4->SetLeftMargin(0.15);
 	p4->SetRightMargin(0.1);
         p4->Draw();             
-        p4->cd();               
+        p4->cd();   
+        KPiPoseta->Sumw2();
+        KPiPoseta->Rebin(N);
+        KPiPoseta->GetYaxis()->SetTitle("Number of entries");            
 	KPiPoseta->SetLineColor(3);
         KPiPoseta->SetMarkerStyle(23);
         KPiPoseta->SetMarkerColor(3);
         KPiPoseta->SetTitle(" ");
         KPiPoseta->DrawCopy();
+        KPiNegeta->Sumw2();
+        KPiNegeta->Rebin(N);
         KPiNegeta->SetLineColor(8);
         KPiNegeta->SetMarkerStyle(26);
         KPiNegeta->SetMarkerColor(8);
@@ -238,12 +267,17 @@ void qaPlots(){
         pa4->SetLeftMargin(0.15);
 	pa4->SetRightMargin(0.1);
         pa4->Draw();             
-        pa4->cd();               
+        pa4->cd();   
+        KPiPosphi->Sumw2();
+        KPiPosphi->Rebin(n);
+        KPiPosphi->GetYaxis()->SetTitle("Number of entries");            
         KPiPosphi->SetLineColor(3);
         KPiPosphi->SetMarkerStyle(23);
         KPiPosphi->SetMarkerColor(3);
         KPiPosphi->SetTitle(" ");
         KPiPosphi->DrawCopy();
+        KPiNegphi->Sumw2();
+        KPiNegphi->Rebin(n);
         KPiNegphi->SetLineColor(8);
         KPiNegphi->SetMarkerStyle(26);
         KPiNegphi->SetMarkerColor(8);
@@ -256,14 +290,20 @@ void qaPlots(){
         pad41->SetBottomMargin(0.15); 
         pad41->SetLeftMargin(0.15);
 	pad41->SetRightMargin(0.1);
+        pad41->SetLogy();
         pad41->Draw();             
-        pad41->cd();               
+        pad41->cd();   
+        LPrPospt->Sumw2();
+        //LPrPospt->Rebin(n);
+        LPrPospt->GetYaxis()->SetTitle("Number of entries");            
         LPrPospt->GetXaxis()->SetRangeUser(0,15);
 	LPrPospt->SetLineColor(1);
         LPrPospt->SetMarkerColor(1);
         LPrPospt->SetMarkerStyle(23);
         LPrPospt->SetTitle(" ");
         LPrPospt->DrawCopy();
+        LPiNegpt->Sumw2();
+        //LPiNegpt->Rebin(n);
         LPiNegpt->SetLineColor(13);
         LPiNegpt->SetMarkerStyle(26);
         LPiNegpt->SetMarkerColor(13);
@@ -273,13 +313,19 @@ void qaPlots(){
         p41->SetBottomMargin(0.15); 
         p41->SetLeftMargin(0.15);
 	p41->SetRightMargin(0.1);
+        p41->SetLogy();
         p41->Draw();            
-        p41->cd();              
+        p41->cd();     
+        LPrPoseta->Sumw2();
+        LPrPoseta->Rebin(N);
+        LPrPoseta->GetYaxis()->SetTitle("Number of entries");         
 	LPrPoseta->SetLineColor(1);
         LPrPoseta->SetMarkerColor(1);
         LPrPoseta->SetMarkerStyle(23);
         LPrPoseta->SetTitle(" ");
         LPrPoseta->DrawCopy();
+        LPiNegeta->Sumw2();
+        LPiNegeta->Rebin(N);
         LPiNegeta->SetLineColor(13);
         LPiNegeta->SetMarkerStyle(26);
         LPiNegeta->SetMarkerColor(13);
@@ -290,12 +336,17 @@ void qaPlots(){
         pa41->SetLeftMargin(0.15);
 	pa41->SetRightMargin(0.1);
         pa41->Draw();             
-        pa41->cd();                
+        pa41->cd();   
+        LPrPosphi->Sumw2();
+        LPrPosphi->Rebin(n);
+        LPrPosphi->GetYaxis()->SetTitle("Number of entries");             
 	LPrPosphi->SetLineColor(1);
         LPrPosphi->SetMarkerColor(1);
         LPrPosphi->SetMarkerStyle(23);
         LPrPosphi->SetTitle(" ");
         LPrPosphi->DrawCopy();
+        LPiNegphi->Sumw2();
+        LPiNegphi->Rebin(n);
         LPiNegphi->SetLineColor(13);
         LPiNegphi->SetMarkerStyle(26);
         LPiNegphi->SetMarkerColor(13);
@@ -308,14 +359,20 @@ void qaPlots(){
         pad42->SetBottomMargin(0.15); 
         pad42->SetLeftMargin(0.15);
 	pad42->SetRightMargin(0.1);
+        pad42->SetLogy();
         pad42->Draw();             
-        pad42->cd();               
+        pad42->cd();   
+        ALPiPospt->Sumw2();
+        //ALPiPospt->Rebin(n);
+        ALPiPospt->GetYaxis()->SetTitle("Number of entries");            
         ALPiPospt->GetXaxis()->SetRangeUser(0,15);
 	ALPiPospt->SetLineColor(2);
         ALPiPospt->SetMarkerColor(2);
         ALPiPospt->SetMarkerStyle(23);
         ALPiPospt->SetTitle(" ");
         ALPiPospt->DrawCopy();
+        ALPrNegpt->Sumw2();
+        //ALPrNegpt->Rebin(n);
         ALPrNegpt->SetLineColor(46);
         ALPrNegpt->SetMarkerStyle(26);
         ALPrNegpt->SetMarkerColor(46);
@@ -326,12 +383,17 @@ void qaPlots(){
         p42->SetLeftMargin(0.15);
 	p42->SetRightMargin(0.1);
         p42->Draw();            
-        p42->cd();              
+        p42->cd();  
+        ALPiPoseta->Sumw2();
+        ALPiPoseta->Rebin(N);
+        ALPiPoseta->GetYaxis()->SetTitle("Number of entries");            
 	ALPiPoseta->SetLineColor(2);
         ALPiPoseta->SetMarkerColor(2);
         ALPiPoseta->SetMarkerStyle(23);
         ALPiPoseta->SetTitle(" ");
         ALPiPoseta->DrawCopy();
+        ALPrNegeta->Sumw2();
+        ALPrNegeta->Rebin(N);
         ALPrNegeta->SetLineColor(46);
         ALPrNegeta->SetMarkerStyle(26);
         ALPrNegeta->SetMarkerColor(46);
@@ -342,19 +404,28 @@ void qaPlots(){
         pa42->SetLeftMargin(0.15);
 	pa42->SetRightMargin(0.1);
         pa42->Draw();            
-        pa42->cd();               
+        pa42->cd();     
+        ALPiPosphi->Sumw2();
+        ALPiPosphi->Rebin(n);
+        ALPiPosphi->GetYaxis()->SetTitle("Number of entries");          
 	ALPiPosphi->SetLineColor(2);
         ALPiPosphi->SetMarkerColor(2);
         ALPiPosphi->SetMarkerStyle(23);
         ALPiPosphi->SetTitle(" ");
         ALPiPosphi->DrawCopy();
+        ALPrNegphi->Sumw2();
+        ALPrNegphi->Rebin(n);
         ALPrNegphi->SetLineColor(46);
         ALPrNegphi->SetMarkerStyle(26);
         ALPrNegphi->SetMarkerColor(46);
         ALPrNegphi->DrawCopy("Esame");
         c4->cd(3);
         L42->Draw();
-        c4->SaveAs("plots/qaV0Daughters.pdf");
+        //c4->SaveAs("plots/qaV0Daughters.pdf");
+        c4->SaveAs(Form("plots/qaV0Daughters_input%d.pdf",i));
+ }//For loop over test files
+
+        //Not relevant for group update
 
         TH1F *VRpt = (TH1F*) AResult->Get("correlationvzerojets/hPtTrackV0inRadius");
         TH1F *Vpt = (TH1F*) AResult->Get("correlationvzerojets/hPtV0");
@@ -368,25 +439,6 @@ void qaPlots(){
         TH1F *Vphi = (TH1F*) AResult->Get("correlationvzerojets/hPhiV0");
         TH1F *Tphi = (TH1F*) AResult->Get("correlationvzerojets/hTrackPhi");
 
-        //jets as next 
-        TH1F *Jpt = (TH1F*) AResult->Get("correlationvzerojets/JetTrackPt");
-        TH1F *LTpt = (TH1F*) AResult->Get("correlationvzerojets/JetLeadTrackPt");
-        TH1F *LJpt = (TH1F*) AResult->Get("correlationvzerojets/JetLeadJetPt");
-        TH1F *JVpt = (TH1F*) AResult->Get("correlationvzerojets/jetV0Pt");
-        TH1F *JVCpt = (TH1F*) AResult->Get("correlationvzerojets/jetWithV0Pt"); 
-
-        TH1F *Je = (TH1F*) AResult->Get("correlationvzerojets/JetTrackEta");
-        TH1F *LTe = (TH1F*) AResult->Get("correlationvzerojets/JetLeadTrackEta");
-        TH1F *LJe = (TH1F*) AResult->Get("correlationvzerojets/JetLeadJetEta");
-        TH1F *JVe = (TH1F*) AResult->Get("correlationvzerojets/jetV0Eta");
-        TH1F *JVCe = (TH1F*) AResult->Get("correlationvzerojets/jetWithV0Eta"); 
-
-        TH1F *Jphi = (TH1F*) AResult->Get("correlationvzerojets/JetTrackPhi");
-        TH1F *LTphi = (TH1F*) AResult->Get("correlationvzerojets/JetLeadTrackPhi");
-        TH1F *LJphi = (TH1F*) AResult->Get("correlationvzerojets/JetLeadJetPhi");
-        TH1F *JVphi = (TH1F*) AResult->Get("correlationvzerojets/jetV0Phi");
-        TH1F *JVCphi = (TH1F*) AResult->Get("correlationvzerojets/jetWithV0Phi"); 
-        
         auto L2 = new TLegend(0.2,0.49, 0.8,0.51);
         L2->SetHeader("","C");
         L2->SetNColumns(4);
@@ -394,7 +446,6 @@ void qaPlots(){
         L2->AddEntry(VRpt, "hPtTrackV0inRadius", "lep");//from V0 process
         L2->AddEntry(Vpt, "hPtV0", "lep");//from V0 process
         L2->AddEntry(Tpt, "hTrackPt", "lep");//from V0 process
-        L2->AddEntry(Jpt, "JetTrackPt", "lep");//from jet process
         L2->SetBorderSize(0);
         L2->SetFillStyle(0);
         
@@ -402,6 +453,7 @@ void qaPlots(){
         c2->Divide(3,2);
         c2->cd(1);
         c2->SetTopMargin(0.1);
+        Vpt->GetYaxis()->SetTitle("Number of entries");
         Vpt->SetTitle("");
         Vpt->GetXaxis()->SetRangeUser(0,10);
         Vpt->SetLineColor(2);
@@ -414,6 +466,7 @@ void qaPlots(){
         VRpt->Draw("same");
         c2->cd(2);
         c2->SetTopMargin(0.1);
+        Ve->GetYaxis()->SetTitle("Number of entries");
         Ve->SetTitle("");
         Ve->SetLineColor(1);
         Ve->SetMarkerStyle(26);
@@ -425,6 +478,7 @@ void qaPlots(){
         VRe->Draw("same");
         c2->cd(3);
         c2->SetTopMargin(0.1);
+        Vphi->GetYaxis()->SetTitle("Number of entries");
         Vphi->SetTitle("");
         Vphi->SetLineColor(1);
         Vphi->SetMarkerStyle(26);
@@ -435,32 +489,19 @@ void qaPlots(){
         VRphi->SetMarkerColor(2);
         VRphi->Draw("same");
         c2->cd(4);
-        Jpt->SetTitle("");
-        Jpt->GetXaxis()->SetRangeUser(0,10);
-        Jpt->SetLineColor(3);
-        Jpt->SetMarkerStyle(24);
-        Jpt->SetMarkerColor(3);
-        Jpt->Draw();
+        Tpt->GetYaxis()->SetTitle("Number of entries");
         Tpt->SetLineColor(2);
         Tpt->SetMarkerStyle(24);
         Tpt->SetMarkerColor(2);
         Tpt->Draw("Esame");
         c2->cd(5);
-        Je->SetTitle("");
-        Je->SetLineColor(3);
-        Je->SetMarkerStyle(24);
-        Je->SetMarkerColor(3);
-        Je->Draw();
+        Te->GetYaxis()->SetTitle("Number of entries");
         Te->SetLineColor(2);
         Te->SetMarkerStyle(24);
         Te->SetMarkerColor(2);
         Te->Draw("Esame");
         c2->cd(6); 
-        Jphi->SetTitle("");       
-        Jphi->SetLineColor(3);
-        Jphi->SetMarkerStyle(24);
-        Jphi->SetMarkerColor(3);
-        Jphi->Draw();
+        Tphi->GetYaxis()->SetTitle("Number of entries");
         Tphi->SetTitle("");
         Tphi->SetLineColor(2);
         Tphi->SetMarkerStyle(24);
@@ -468,98 +509,6 @@ void qaPlots(){
         Tphi->Draw("Esame");
         c2->cd();
         L2->Draw();
-        c2->SaveAs("plots/QA.pdf");
+        c2->SaveAs("plots/V0QA.pdf");
 
-        auto L3 = new TLegend(0.2,0.9, 0.8,1);
-        L3->SetHeader("","C");
-        L3->SetNColumns(4);
-        L3->SetTextSize(0.036);
-        L3->AddEntry(LTpt, "JetLeadTrack", "lep");//from jet process
-        L3->AddEntry(LJpt, "JetLeadJet", "lep");//from jet process
-        L3->AddEntry(JVpt, "jetV0", "lep");//from jet process
-        L3->AddEntry(JVCpt, "jetWithV0", "lep");//from jet process
-        L3->SetBorderSize(0);
-        L3->SetFillStyle(0);
-
-        TCanvas *c3 = new TCanvas("c3", "Jets and V0 in jetprocess", 1200, 400);
-        c3->cd();
-        TPad *pa = new TPad("pa", "pa", 0., 0., 0.3, 0.9);
-        pa->SetBottomMargin(0.15); 
-        pa->SetLeftMargin(0.15);
-	pa->SetRightMargin(0.1);
-        pa->Draw();             // Draw the upper pad: pad1
-        pa->cd();               // pad1 becomes the current pad
-	JVpt->GetXaxis()->SetRangeUser(0,10);
-        //JVpt->GetYaxis()->SetRangeUser(0,120000);
-	JVpt->SetLineColor(2);
-        JVpt->SetMarkerStyle(26);
-        JVpt->SetMarkerColor(2);
-        JVpt->SetTitle(" ");
-        JVpt->DrawCopy();
-        LJpt->SetLineColor(3);
-        LJpt->SetMarkerStyle(26);
-        LJpt->SetMarkerColor(3);
-        LJpt->DrawCopy("Esame");
-        LTpt->SetLineColor(1);
-        LTpt->SetMarkerStyle(23);
-        LTpt->SetMarkerColor(1);
-        LTpt->DrawCopy("Esame");
-        JVCpt->SetLineColor(2);
-        JVCpt->SetMarkerStyle(32);
-        JVCpt->SetMarkerColor(2);
-        JVCpt->DrawCopy("Esame");
-        c3->cd();
-        TPad *pa2 = new TPad("pa2", "pa2", 0.3, 0., 0.6, 0.9);
-        pa2->SetBottomMargin(0.15); 
-        pa2->SetLeftMargin(0.15);
-	pa2->SetRightMargin(0.1);
-        pa2->Draw();             
-        pa2->cd();               
-	JVe->SetLineColor(2);
-        JVe->SetMarkerStyle(26);
-        JVe->SetMarkerColor(2);
-        JVe->SetTitle(" ");
-        JVe->DrawCopy();
-        LJe->SetLineColor(3);
-        LJe->SetMarkerStyle(26);
-        LJe->SetMarkerColor(3);
-        LJe->DrawCopy("Esame");
-        LTe->SetLineColor(1);
-        LTe->SetMarkerStyle(23);
-        LTe->SetMarkerColor(1);
-        LTe->DrawCopy("Esame");
-        JVCe->SetLineColor(2);
-        JVCe->SetMarkerStyle(32);
-        JVCe->SetMarkerColor(2);
-        JVCe->DrawCopy("Esame");
-        c3->cd();
-
-        TPad *pa3 = new TPad("pa3", "pa3", 0.6, 0., 0.9, 0.9);//finish this plot in the train
-        pa3->SetBottomMargin(0.15); 
-        pa3->SetLeftMargin(0.15);
-	pa3->SetRightMargin(0.1);
-        pa3->Draw();             
-        pa3->cd();               
-        JVphi->GetYaxis()->SetRangeUser(0,5500);
-        JVphi->SetLineColor(2);
-        JVphi->SetMarkerStyle(26);
-        JVphi->SetMarkerColor(2);
-        JVphi->SetTitle(" ");
-        JVphi->DrawCopy();
-        LJphi->SetLineColor(3);
-        LJphi->SetMarkerStyle(26);
-        LJphi->SetMarkerColor(3);
-        LJphi->DrawCopy("Esame");
-        LTphi->SetLineColor(1);
-        LTphi->SetMarkerStyle(23);
-        LTphi->SetMarkerColor(1);
-        LTphi->DrawCopy("Esame");
-        JVCphi->SetLineColor(2);
-        JVCphi->SetMarkerStyle(32);
-        JVCphi->SetMarkerColor(2);
-        JVCphi->DrawCopy("Esame");
-        c3->cd();
-        L3->Draw();
-
-        c3->SaveAs("plots/qaJets.pdf");
 }
