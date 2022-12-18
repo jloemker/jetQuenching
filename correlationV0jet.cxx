@@ -303,17 +303,17 @@ struct correlationvzerojets{
       float nsigma_neg_pion = TMath::Abs(v0.negTrack_as<CombinedTracks>().tpcNSigmaPi());
 
       if( v0.posTrack_as<CombinedTracks>().pt() > V0daugPtMin && v0.negTrack_as<CombinedTracks>().pt() > V0daugPtMin){
-      if(v0.v0radius() > MinV0radius && v0.v0radius() < MaxV0radius && v0.pt() < V0ptMax && v0.pt() > V0ptMin) {//v0 radius and pT bin cuts
+        if(v0.v0radius() > MinV0radius && v0.v0radius() < MaxV0radius && v0.pt() < V0ptMax && v0.pt() > V0ptMin) {//v0 radius and pT bin cuts
         //get citted v0.radius distribution
         registry.fill(HIST("hV0radius"), v0.v0radius());
         registry.fill(HIST("hV0cospa"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()));
 
-        //for invariant mass rejection as function of pT
+        //for invariant mass rejection as function of pT -- there are sources that select a fixed mass rejection but pt dependent cospa
         float upperLambda = 1.13688 + 0.00527838*v0.pt() + 0.084222*exp(-3.80595*v0.pt());
         float lowerLambda = 1.09501 - 0.00523272*v0.pt() - 0.075269*exp(-3.46339*v0.pt()); 
         float upperKaon = 0.563707 + 0.0114979*v0.pt();
         float lowerKaon = 0.43006 - 0.0110029*v0.pt();
-        
+
         if( nsigma_pos_pion < 5 && nsigma_neg_pion < 5 && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospaK0s ){//topological daughter cut
           if(v0.mK0Short() > upperKaon || v0.mK0Short() < lowerKaon ){continue;}
           registry.fill(HIST("hMK0Short"), v0.mK0Short());
