@@ -49,7 +49,7 @@ using namespace o2::framework::expressions;
 
 using MyTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::pidTPCPi, aod::pidTPCPr>;//This was used for the V0 invariant mass tutorial
 using JetTrackCandidates = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, aod::TrackSelection>;//This was used in the ChJetTriggerQA
-using CombinedTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, aod::pidTPCPi, aod::pidTPCPr, aod::TrackSelection>;//This is what I use for my analysis (for now)
+using CombinedTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, aod::pidTPCPi, aod::pidTPCPr, aod::pidTOFPr, aod::TrackSelection>;//This is what I use for my analysis (for now)
 //there are also pidTOFFullPr ... but this did not work, bc of the lambda k zero builder
 struct correlationvzerojets{
   //configurables for collision and track filter ! Crosscheck with configurables applied when using the jet finder
