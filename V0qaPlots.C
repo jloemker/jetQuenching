@@ -1,5 +1,60 @@
 //Add the Lamber over kaon - normalize the ratio ! newPtb->Scale(1/Nb->Integral()) -> ok, not required anymore .. but why is the error so large ?;
+
 void V0qaPlots(){
+        TFile *Result = new TFile("/home/johannalomker/alice/analysis/jetQuenching/AnalysisResults.root");
+
+        TH2F *InvMvsPtK0Short = (TH2F*) Result->Get("correlationvzerojets/InvMvsPtK0Short");
+        TH2F *InvMvsPtLambda = (TH2F*) Result->Get("correlationvzerojets/InvMvsPtLambda");
+        TH2F *InvMvsPtAntiLambda = (TH2F*) Result->Get("correlationvzerojets/InvMvsPtAntiLambda");
+      //{"","Inv. Mass vs pT K0Short; Inv. Mass [GeV/#it{c}]; pT [GeV/#it{c}]", {HistType::kTH2F{{nBins, 0, 4}, {nBinsPt, 0, 50}}}},
+      //{"","Inv. Mass vs pT Lambda; Inv. Mass [GeV/#it{c}]; pT [GeV/#it{c}]", {HistType::kTH2F{{nBins, 0, 4}, {nBinsPt, 0, 50}}}},
+      //{"","Inv. Mass vs pT AntiLmabda; Inv. Mass [GeV/#it{c}]; pT [GeV/#it{c}]", {HistType::kTH2F{{nBins, 0, 4}, {nBinsPt, 0, 50}}}},
+
+      //{"CosPaVspTK0Short","CosPa vs pT K0Short; cosPa; pT [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9, 1}, {nBinsPt, 0, 50}}}},
+      //{"CosPaVspTLambda","CosPa vs pT Lambda; cosPa; pT [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9, 1}, {nBinsPt, 0, 50}}}},
+      //{"CosPaVspTAntiLambda","CosPa vs pT AntiLmabda; CosPa; pT [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9, 1}, {nBinsPt, 0, 50}}}},
+        TH2F *CosPaVspTK0Short = (TH2F*) Result->Get("correlationvzerojets/CosPaVspTK0Short");
+        TH2F *CosPaVspTLambda = (TH2F*) Result->Get("correlationvzerojets/CosPaVspTLambda");
+        TH2F *CosPaVspTAntiLambda = (TH2F*) Result->Get("correlationvzerojets/CosPaVspTAntiLambda");
+
+        TH2F *CosPaVsMK0Short = (TH2F*) Result->Get("correlationvzerojets/CosPaVsMK0Short");
+        TH2F *CosPaVsMLambda = (TH2F*) Result->Get("correlationvzerojets/CosPaVsMLambda");
+        TH2F *CosPaVsMAntiLambda = (TH2F*) Result->Get("correlationvzerojets/CosPaVsMAntiLambda");
+        //one 2D disrivution for each plot
+        TCanvas *V = new TCanvas("var vs pT or m", "var vs pT or m", 900, 1000);
+        V->Divide(3,3);
+        V->cd(1);
+        InvMvsPtK0Short->GetXaxis()->SetRangeUser(0.2,0.8);
+        InvMvsPtK0Short->Draw("COLZ");
+        V->cd(2);
+        InvMvsPtLambda->GetXaxis()->SetRangeUser(1,1.4);
+        InvMvsPtLambda->Draw("COLZ");
+        V->cd(3);
+        InvMvsPtAntiLambda->GetXaxis()->SetRangeUser(1,1.4);
+        InvMvsPtAntiLambda->Draw("COLZ");
+        V->cd(4);
+        CosPaVspTK0Short->Draw("COLZ");
+        V->cd(5);
+        CosPaVspTLambda->Draw("COLZ");
+        V->cd(6);
+        CosPaVspTAntiLambda->Draw("COLZ");
+        V->cd(7);
+        CosPaVsMK0Short->GetYaxis()->SetRangeUser(0.2,0.8);
+        CosPaVsMK0Short->Draw("COLZ");
+        V->cd(8);
+        CosPaVsMLambda->GetYaxis()->SetRangeUser(1,1.4);
+        CosPaVsMLambda->Draw("COLZ");
+        V->cd(9);
+        CosPaVsMAntiLambda->GetYaxis()->SetRangeUser(1,1.4);
+        CosPaVsMAntiLambda->Draw("COLZ");
+        V->SaveAs("plots/VarVsPt.pdf");  
+
+        //loop over pT bins for distinct invariant mass and cospa distribution - then create differences and ratios for a selection criteria on cospa
+
+}
+
+
+void V0qaPlotsPtCuts(){
         TString input;
         //Output the Histos from correlationV0jet - the lambda over kaon, angular distance are not in here, but all qa's 
         //TFile *AResult = new TFile("/home/johannalomker/alice/analysis/jetQuenching/AnalysisResultsNoPtcut.root");
@@ -54,7 +109,7 @@ void V0qaPlots(){
         can4->SaveAs("plots/DeltaPhiEta.pdf");
 
         gStyle -> SetOptStat(0);
-for(int i = 0; i<5; i++){
+for(int i = 0; i<4; i++){
         TString result;
         if(i == 0){AResult = new TFile(input1);}
         if(i == 1){AResult = new TFile(input2);}

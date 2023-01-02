@@ -138,13 +138,17 @@ struct correlationvzerojets{
       {"hPhiAntiLambda", "if AntiLambda : v0.phi() #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
 
       //For invariant mass per pT bin
-      {"InvMvsPtK0Short","Inv. Mass vs pT K0Short; Inv. Mass [GeV/#it{c}]; pT [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0, 4}, {nBinsPt, 0, 50}}}},
-      {"InvMvsPtLambda","Inv. Mass vs pT Lambda; Inv. Mass [GeV/#it{c}]; pT [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0, 4}, {nBinsPt, 0, 50}}}},
-      {"InvMvsPtAntiLambda","Inv. Mass vs pT AntiLmabda; Inv. Mass [GeV/#it{c}]; pT [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0, 4}, {nBinsPt, 0, 50}}}},
+      {"InvMvsPtK0Short","Inv. Mass vs p_{T} K0Short; Inv. Mass [GeV/#it{c}]; p_{T} [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0, 1.5}, {nBinsPt, 0, 50}}}},
+      {"InvMvsPtLambda","Inv. Mass vs p_{T} Lambda; Inv. Mass [GeV/#it{c}]; p_{T} [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0, 1.5}, {nBinsPt, 0, 50}}}},
+      {"InvMvsPtAntiLambda","Inv. Mass vs p_{T} AntiLmabda; Inv. Mass [GeV/#it{c}]; p_{T} [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0, 1.5}, {nBinsPt, 0, 50}}}},
       //For cosPa per pT bin
-      {"CosPaVspTK0Short","CosPa vs pT K0Short; cosPa; pT [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9, 1}, {nBinsPt, 0, 50}}}},
-      {"CosPaVspTLambda","CosPa vs pT Lambda; cosPa; pT [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9, 1}, {nBinsPt, 0, 50}}}},
-      {"CosPaVspTAntiLambda","CosPa vs pT AntiLmabda; CosPa; pT [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9, 1}, {nBinsPt, 0, 50}}}},
+      {"CosPaVspTK0Short","K0Short; cosPa; p_{T} [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9945, 1}, {nBinsPt, 0, 50}}}},
+      {"CosPaVspTLambda","Lambda; cosPa; p_{T} [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9945, 1}, {nBinsPt, 0, 50}}}},
+      {"CosPaVspTAntiLambda","AntiLambda; cosPa; p_{T} [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9945, 1}, {nBinsPt, 0, 50}}}},
+      //For cosPa vs invariant mass
+      {"CosPaVsMK0Short","K0Short; cosPa; Inv. Mass [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9945, 1}, {nBins, 0, 1.5}}}},
+      {"CosPaVsMLambda","Lambda; cosPa; Inv. Mass [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9945, 1}, {nBins, 0, 1.5}}}},
+      {"CosPaVsMAntiLambda","AntiLambda; cosPa; Inv. Mass [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9945, 1}, {nBins, 0, 1.5}}}},
 
       //Daughter QA
       {"hKPtPosPion", "Koan PosPion ; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
@@ -358,6 +362,7 @@ struct correlationvzerojets{
             //for invMass and CosPa per pT bin
             registry.fill(HIST("InvMvsPtK0Short"), v0.mK0Short(), v0.pt());
             registry.fill(HIST("CosPaVspTK0Short"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()), v0.pt());
+            registry.fill(HIST("CosPaVsMK0Short"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()), v0.mK0Short());
             //for QA of daughters
             registry.fill(HIST("hKPtPosPion"), v0.posTrack_as<CombinedTracks>().pt()); 
             registry.fill(HIST("hKPtNegPion"), v0.negTrack_as<CombinedTracks>().pt()); 
@@ -375,6 +380,7 @@ struct correlationvzerojets{
             //for invMass and CosPa per pT bin
             registry.fill(HIST("InvMvsPtLambda"), v0.mLambda(), v0.pt());
             registry.fill(HIST("CosPaVspTLambda"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()), v0.pt());
+            registry.fill(HIST("CosPaVsMLambda"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()), v0.mLambda());
             //for QA of daughters -- this has to be corrected !
             registry.fill(HIST("hLPtPosPr"), v0.posTrack_as<CombinedTracks>().pt()); 
             registry.fill(HIST("hLPtNegPi"), v0.negTrack_as<CombinedTracks>().pt()); 
@@ -392,6 +398,7 @@ struct correlationvzerojets{
             //for invMass per pT bin
             registry.fill(HIST("InvMvsPtAntiLambda"), v0.mAntiLambda(), v0.pt());
             registry.fill(HIST("CosPaVspTAntiLambda"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()), v0.pt());
+            registry.fill(HIST("CosPaVsMAntiLambda"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()), v0.mAntiLambda());
             //for QA of daughters - maybe V0 specific plots
             registry.fill(HIST("hALPtPosPion"), v0.posTrack_as<CombinedTracks>().pt()); 
             registry.fill(HIST("hALPtNegPr"), v0.negTrack_as<CombinedTracks>().pt()); 
