@@ -14,7 +14,8 @@
 //	to run (step vzerotemplateexample): check the run.sh and config.json
 //
 //	\since 2022
-/// with n: 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD
+// with n: 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD !
+// we also implemented the global hybrid track cuts for 2018 - possibility to check !
 
 #include <cmath>
 #include <string>
@@ -89,7 +90,10 @@ struct correlationvzerojets{
   Filter trackFilter = (nabs(aod::track::eta) < trackEtaCut) && (requireGlobalTrackInFilter()) && (aod::track::pt > trackPtCutMin);//here also a max and then i can evaluate in different pt bins - see literature for proper ranges
   Filter preFilterV0 = nabs(aod::v0data::dcapostopv) > dcapostopv&& nabs(aod::v0data::dcanegtopv) > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
   
-  // TrackSelection globalTracks;
+  /* To keep the old version until I know if the otherstuff works.
+   *
+   * TrackSelection globalTracks;
+
   void init(o2::framework::InitContext&)
   {
     jetReclusterer.isReclustering = true;
@@ -100,7 +104,9 @@ struct correlationvzerojets{
     jetReclusterer.jetPtMax = 1e9;
 
     fiducialVolume = trackEtaCut - JetR;
-  }
+  }//end of init
+ 
+  */
 
   HistogramRegistry registry{
     "registry",
@@ -190,6 +196,26 @@ struct correlationvzerojets{
       {"AngularDistance", "Angular distance(leading J - V0); #Delta R", {HistType::kTH1F, {{nBins, 0, 10}}}}
     }
   };
+
+  void init(o2::framework::InitContext&)//new attempt to get the invariant mass in each bin
+  {
+    jetReclusterer.isReclustering = true;
+    jetReclusterer.algorithm = fastjet::JetAlgorithm::antikt_algorithm;
+    jetReclusterer.jetR = JetR;
+    jetReclusterer.jetEtaMin = -trackEtaCut;
+    jetReclusterer.jetEtaMax = trackEtaCut;
+    jetReclusterer.jetPtMax = 1e9;
+
+    fiducialVolume = trackEtaCut - JetR;
+
+    for(int i=0; i < nBinsPt; i++){//for loop to create N (= Number of pT bins) invariant mass histograms for Lambda, Antilambda and Kaons
+      //from()..with pT bin
+      registry.add(Form("MK0_pT_%d",i), "invariant mass Kaon at "+Form("pT = %d",i)+"M (GeV/#it{c})", {HistType::kTH1F, {{nBins,0.,4.}}});
+      registry.add(Form("ML_pT_%d",i), "invariant mass Lambda at "+Form("pT = %d",i)+"M (GeV/#it{c})", {HistType::kTH1F, {{nBins,0.,4.}}});
+      registry.add(Form("MAL_pT_%d",i), "invariant mass AntiLambda at "+Form("pT = %d",i)+"M (GeV/#it{c})", {HistType::kTH1F, {{nBins,0.,4.}}});
+    }//end of for loop
+  }//end of init
+
 
   //I think a second struct where i process jets withit the dca filter is required.. then I could compare jets with and without ?..hmm..
   void Jet(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::JetFilters>>::iterator const& collision, soa::Filtered<CombinedTracks> const& tracks, aod::V0Datas const& V0s)//figure out why only aod::Tracks or MyTracks and/or if they are th same
