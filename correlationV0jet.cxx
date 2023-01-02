@@ -11,6 +11,13 @@
 ///
 //  \author
 //	Johanna Lömker
+//  For now, there is only a more or less acceptable inclusive baryon over meson ratio - selection criteria have to be improved 
+//  - maybe I could fit the cospa distribution and remove 3 sogma outlayer ? 
+//    (perhaps only one side...maybe here i need indeed mc to have a gaussion distrbution which i could use for it..) 
+//  - or i use the equation for cospa to get a function that rejects pT dependent ...?
+//
+//  nonono... I simply need to get the distribution per pT - then we take a ratio and build a pT dependent criteria like cosPa < (1 - mean cospa)*pT +- 2 sigma 
+//
 //	to run (step vzerotemplateexample): check the run.sh and config.json
 //
 //	\since 2022
@@ -130,6 +137,11 @@ struct correlationvzerojets{
       {"hEtaAntiLambda", "if AntiLambda : v0.eta() #eta; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
       {"hPhiAntiLambda", "if AntiLambda : v0.phi() #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
 
+      //For invariant mass per pT bin
+      {"InvMvsPtK0Short","Inv. Mass vs pT K0Short; Inv. Mass [GeV/#it{c}]; pT [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0, 4}, {nBinsPt, 0, 50}}}},
+      {"InvMvsPtLambda","Inv. Mass vs pT Lambda; Inv. Mass [GeV/#it{c}]; pT [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0, 4}, {nBinsPt, 0, 50}}}},
+      {"InvMvsPtAntiLambda","Inv. Mass vs pT AntiLmabda; Inv. Mass [GeV/#it{c}]; pT [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0, 4}, {nBinsPt, 0, 50}}}},
+
       //Daughter QA
       {"hKPtPosPion", "Koan PosPion ; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
       {"hKPtNegPion", "Kaon NegPion ; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
@@ -207,13 +219,6 @@ struct correlationvzerojets{
     jetReclusterer.jetPtMax = 1e9;
 
     fiducialVolume = trackEtaCut - JetR;
-
-    for(int i=0; i < nBinsPt; i++){//for loop to create N (= Number of pT bins) invariant mass histograms for Lambda, Antilambda and Kaons
-      //from()..with pT bin
-      registry.add(Form("MK0_pT_%d",i), "invariant mass Kaon at "+Form("pT = %d",i)+"M (GeV/#it{c})", {HistType::kTH1F, {{nBins,0.,4.}}});
-      registry.add(Form("ML_pT_%d",i), "invariant mass Lambda at "+Form("pT = %d",i)+"M (GeV/#it{c})", {HistType::kTH1F, {{nBins,0.,4.}}});
-      registry.add(Form("MAL_pT_%d",i), "invariant mass AntiLambda at "+Form("pT = %d",i)+"M (GeV/#it{c})", {HistType::kTH1F, {{nBins,0.,4.}}});
-    }//end of for loop
   }//end of init
 
 
@@ -322,7 +327,7 @@ struct correlationvzerojets{
 	
     for(auto& v0 : V0s){
       //particle identification by using the tpcNSigma track variable
-      //in principle i could try the same with tofNSigma - if I include tof in my tracks ... good or bad -> gonna ask ...
+      //in principle i could try the same with tofNSigma - but when to use what ?
       float nsigma_pos_proton = TMath::Abs(v0.posTrack_as<CombinedTracks>().tpcNSigmaPr());// o2::aod::pidtpc::TPCNSigmaPr 	|	tpcNSigmaPr |	float |	Nsigma separation with the TPC detector for proton
       float nsigma_neg_proton = TMath::Abs(v0.negTrack_as<CombinedTracks>().tpcNSigmaPr());// this is the TPC dE/dx, for 22 < 4; for 2017/2018 < 5 !
       float nsigma_pos_pion = TMath::Abs(v0.posTrack_as<CombinedTracks>().tpcNSigmaPi());// o2::aod::pidtpc::TPCNSigmaPi 	|	tpcNSigmaPi |	float |	Nsigma separation with the TPC detector for pion
@@ -342,45 +347,51 @@ struct correlationvzerojets{
 
         if( nsigma_pos_pion < 5 && nsigma_neg_pion < 5 && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospaK0s ){//topological daughter cut
           if(v0.mK0Short() > upperKaon || v0.mK0Short() < lowerKaon ){continue;}
-          registry.fill(HIST("hMK0Short"), v0.mK0Short());
-	        registry.fill(HIST("hPtK0Short"), v0.pt());
-	        registry.fill(HIST("hEtaK0Short"), v0.eta());
-          registry.fill(HIST("hPhiK0Short"), v0.phi());
-          //for QA of daughters
-          registry.fill(HIST("hKPtPosPion"), v0.posTrack_as<CombinedTracks>().pt()); 
-          registry.fill(HIST("hKPtNegPion"), v0.negTrack_as<CombinedTracks>().pt()); 
-          registry.fill(HIST("hKEtaPosPion"), v0.posTrack_as<CombinedTracks>().eta()); 
-          registry.fill(HIST("hKEtaNegPion"), v0.negTrack_as<CombinedTracks>().eta()); 
-          registry.fill(HIST("hKPhiPosPion"), v0.posTrack_as<CombinedTracks>().phi()); 
-          registry.fill(HIST("hKPhiNegPion"), v0.negTrack_as<CombinedTracks>().phi()); 
+            registry.fill(HIST("hMK0Short"), v0.mK0Short());
+	          registry.fill(HIST("hPtK0Short"), v0.pt());
+	          registry.fill(HIST("hEtaK0Short"), v0.eta());
+            registry.fill(HIST("hPhiK0Short"), v0.phi());
+            //for invMass per pT bin
+            registry.fill(HIST("InvMvsPtK0Short"), v0.mK0Short(), v0.pt());
+            //for QA of daughters
+            registry.fill(HIST("hKPtPosPion"), v0.posTrack_as<CombinedTracks>().pt()); 
+            registry.fill(HIST("hKPtNegPion"), v0.negTrack_as<CombinedTracks>().pt()); 
+            registry.fill(HIST("hKEtaPosPion"), v0.posTrack_as<CombinedTracks>().eta()); 
+            registry.fill(HIST("hKEtaNegPion"), v0.negTrack_as<CombinedTracks>().eta()); 
+            registry.fill(HIST("hKPhiPosPion"), v0.posTrack_as<CombinedTracks>().phi()); 
+            registry.fill(HIST("hKPhiNegPion"), v0.negTrack_as<CombinedTracks>().phi()); 
        	}
 	      if( nsigma_pos_proton < 5 && nsigma_neg_pion < 5 && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospaLamb ){
           if(v0.mLambda() > upperLambda || v0.mLambda() < lowerLambda ){continue;}
-          registry.fill(HIST("hMLambda"), v0.mLambda());
-	        registry.fill(HIST("hPtLambda"), v0.pt());
-          registry.fill(HIST("hEtaLambda"), v0.eta());
-          registry.fill(HIST("hPhiLambda"), v0.phi());
-          //for QA of daughters -- this has to be corrected !
-          registry.fill(HIST("hLPtPosPr"), v0.posTrack_as<CombinedTracks>().pt()); 
-          registry.fill(HIST("hLPtNegPi"), v0.negTrack_as<CombinedTracks>().pt()); 
-          registry.fill(HIST("hLEtaPosPr"), v0.posTrack_as<CombinedTracks>().eta()); 
-          registry.fill(HIST("hLEtaNegPi"), v0.negTrack_as<CombinedTracks>().eta()); 
-          registry.fill(HIST("hLPhiPosPr"), v0.posTrack_as<CombinedTracks>().phi()); 
-          registry.fill(HIST("hLPhiNegPi"), v0.negTrack_as<CombinedTracks>().phi()); 
+            registry.fill(HIST("hMLambda"), v0.mLambda());
+	          registry.fill(HIST("hPtLambda"), v0.pt());
+            registry.fill(HIST("hEtaLambda"), v0.eta());
+            registry.fill(HIST("hPhiLambda"), v0.phi());
+            //for invMass per pT bin
+            registry.fill(HIST("InvMvsPtLambda"), v0.mLambda(), v0.mLambda());//almost nospread compared to the other 2 2D distributions !
+            //for QA of daughters -- this has to be corrected !
+            registry.fill(HIST("hLPtPosPr"), v0.posTrack_as<CombinedTracks>().pt()); 
+            registry.fill(HIST("hLPtNegPi"), v0.negTrack_as<CombinedTracks>().pt()); 
+            registry.fill(HIST("hLEtaPosPr"), v0.posTrack_as<CombinedTracks>().eta()); 
+            registry.fill(HIST("hLEtaNegPi"), v0.negTrack_as<CombinedTracks>().eta()); 
+            registry.fill(HIST("hLPhiPosPr"), v0.posTrack_as<CombinedTracks>().phi()); 
+            registry.fill(HIST("hLPhiNegPi"), v0.negTrack_as<CombinedTracks>().phi()); 
 	      }
 	      if( nsigma_pos_pion < 5 && nsigma_neg_proton < 5 && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospaLamb ){
           if(v0.mAntiLambda() > upperLambda || v0.mAntiLambda() < lowerLambda ){continue;}
-          registry.fill(HIST("hMAntiLambda"), v0.mAntiLambda());	
-	        registry.fill(HIST("hPtAntiLambda"), v0.pt());
-          registry.fill(HIST("hEtaAntiLambda"), v0.eta());
-          registry.fill(HIST("hPhiAntiLambda"), v0.phi());
-          //for QA of daughters - maybe V0 specific plots
-          registry.fill(HIST("hALPtPosPion"), v0.posTrack_as<CombinedTracks>().pt()); 
-          registry.fill(HIST("hALPtNegPr"), v0.negTrack_as<CombinedTracks>().pt()); 
-          registry.fill(HIST("hALEtaPosPion"), v0.posTrack_as<CombinedTracks>().eta()); 
-          registry.fill(HIST("hALEtaNegPr"), v0.negTrack_as<CombinedTracks>().eta()); 
-          registry.fill(HIST("hALPhiPosPion"), v0.posTrack_as<CombinedTracks>().phi()); 
-          registry.fill(HIST("hALPhiNegPr"), v0.negTrack_as<CombinedTracks>().phi()); 
+            registry.fill(HIST("hMAntiLambda"), v0.mAntiLambda());	
+	          registry.fill(HIST("hPtAntiLambda"), v0.pt());
+            registry.fill(HIST("hEtaAntiLambda"), v0.eta());
+            registry.fill(HIST("hPhiAntiLambda"), v0.phi());
+            //for invMass per pT bin
+            registry.fill(HIST("InvMvsPtAntiLambda"), v0.mAntiLambda(), v0.pt());
+            //for QA of daughters - maybe V0 specific plots
+            registry.fill(HIST("hALPtPosPion"), v0.posTrack_as<CombinedTracks>().pt()); 
+            registry.fill(HIST("hALPtNegPr"), v0.negTrack_as<CombinedTracks>().pt()); 
+            registry.fill(HIST("hALEtaPosPion"), v0.posTrack_as<CombinedTracks>().eta()); 
+            registry.fill(HIST("hALEtaNegPr"), v0.negTrack_as<CombinedTracks>().eta()); 
+            registry.fill(HIST("hALPhiPosPion"), v0.posTrack_as<CombinedTracks>().phi()); 
+            registry.fill(HIST("hALPhiNegPr"), v0.negTrack_as<CombinedTracks>().phi()); 
         }
         // Get V0 within radius and v0cosPA
         registry.fill(HIST("hPtTrackV0inRadius"), v0.pt());
@@ -401,6 +412,7 @@ struct correlationvzerojets{
       registry.fill(HIST("hTrackEta"), track.eta());
       registry.fill(HIST("hTrackPhi"), track.phi());
     }
+
    }
   PROCESS_SWITCH(correlationvzerojets, V0, "process v0 and their track QA", true);
 };
