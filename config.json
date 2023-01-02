@@ -138,7 +138,7 @@
         "bTriggerDecision": "0",
         "V0daugPtMin": "0",
         "V0ptMin": "0",
-        "V0pTMax": "20",
+        "V0pTMax": "50",
         "v0cospaLamb": "0.995",
         "v0cospaK0s": "0.96999999999999997",
         "dcav0dau": "1",

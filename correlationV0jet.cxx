@@ -141,6 +141,10 @@ struct correlationvzerojets{
       {"InvMvsPtK0Short","Inv. Mass vs pT K0Short; Inv. Mass [GeV/#it{c}]; pT [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0, 4}, {nBinsPt, 0, 50}}}},
       {"InvMvsPtLambda","Inv. Mass vs pT Lambda; Inv. Mass [GeV/#it{c}]; pT [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0, 4}, {nBinsPt, 0, 50}}}},
       {"InvMvsPtAntiLambda","Inv. Mass vs pT AntiLmabda; Inv. Mass [GeV/#it{c}]; pT [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0, 4}, {nBinsPt, 0, 50}}}},
+      //For cosPa per pT bin
+      {"CosPaVspTK0Short","CosPa vs pT K0Short; cosPa; pT [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9, 1}, {nBinsPt, 0, 50}}}},
+      {"CosPaVspTLambda","CosPa vs pT Lambda; cosPa; pT [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9, 1}, {nBinsPt, 0, 50}}}},
+      {"CosPaVspTAntiLambda","CosPa vs pT AntiLmabda; CosPa; pT [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9, 1}, {nBinsPt, 0, 50}}}},
 
       //Daughter QA
       {"hKPtPosPion", "Koan PosPion ; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
@@ -351,8 +355,9 @@ struct correlationvzerojets{
 	          registry.fill(HIST("hPtK0Short"), v0.pt());
 	          registry.fill(HIST("hEtaK0Short"), v0.eta());
             registry.fill(HIST("hPhiK0Short"), v0.phi());
-            //for invMass per pT bin
+            //for invMass and CosPa per pT bin
             registry.fill(HIST("InvMvsPtK0Short"), v0.mK0Short(), v0.pt());
+            registry.fill(HIST("CosPaVspTK0Short"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()), v0.pt());
             //for QA of daughters
             registry.fill(HIST("hKPtPosPion"), v0.posTrack_as<CombinedTracks>().pt()); 
             registry.fill(HIST("hKPtNegPion"), v0.negTrack_as<CombinedTracks>().pt()); 
@@ -364,11 +369,12 @@ struct correlationvzerojets{
 	      if( nsigma_pos_proton < 5 && nsigma_neg_pion < 5 && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospaLamb ){
           if(v0.mLambda() > upperLambda || v0.mLambda() < lowerLambda ){continue;}
             registry.fill(HIST("hMLambda"), v0.mLambda());
-	          registry.fill(HIST("hPtLambda"), v0.pt());
+            registry.fill(HIST("hPtLambda"), v0.pt());
             registry.fill(HIST("hEtaLambda"), v0.eta());
             registry.fill(HIST("hPhiLambda"), v0.phi());
-            //for invMass per pT bin
-            registry.fill(HIST("InvMvsPtLambda"), v0.mLambda(), v0.mLambda());//almost nospread compared to the other 2 2D distributions !
+            //for invMass and CosPa per pT bin
+            registry.fill(HIST("InvMvsPtLambda"), v0.mLambda(), v0.pt());
+            registry.fill(HIST("CosPaVspTLambda"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()), v0.pt());
             //for QA of daughters -- this has to be corrected !
             registry.fill(HIST("hLPtPosPr"), v0.posTrack_as<CombinedTracks>().pt()); 
             registry.fill(HIST("hLPtNegPi"), v0.negTrack_as<CombinedTracks>().pt()); 
@@ -385,6 +391,7 @@ struct correlationvzerojets{
             registry.fill(HIST("hPhiAntiLambda"), v0.phi());
             //for invMass per pT bin
             registry.fill(HIST("InvMvsPtAntiLambda"), v0.mAntiLambda(), v0.pt());
+            registry.fill(HIST("CosPaVspTAntiLambda"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()), v0.pt());
             //for QA of daughters - maybe V0 specific plots
             registry.fill(HIST("hALPtPosPion"), v0.posTrack_as<CombinedTracks>().pt()); 
             registry.fill(HIST("hALPtNegPr"), v0.negTrack_as<CombinedTracks>().pt()); 
