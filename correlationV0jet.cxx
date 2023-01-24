@@ -42,23 +42,26 @@
 #include "Common/DataModel/EventSelection.h"
 #include "Common/DataModel/TrackSelectionTables.h"
 #include "Common/DataModel/Multiplicity.h"
-#include "Common/DataModel/PIDResponse.h"
+#include "Common/DataModel/PIDResponse.h"//for mc association in processV0() template
 
 #include "PWGLF/DataModel/LFStrangenessTables.h"
 #include "PWGJE/Core/JetFinder.h"
 #include "PWGJE/DataModel/Jet.h"
 #include "PWGJE/DataModel/EMCALClusters.h"
 
-
-
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
 using MyTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::pidTPCPi, aod::pidTPCPr>;//This was used for the V0 invariant mass tutorial
-using JetTrackCandidates = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, aod::TrackSelection>;//This was used in the ChJetTriggerQA
-using CombinedTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, aod::pidTPCPi, aod::pidTPCPr, aod::pidTOFPr, aod::TrackSelection>;//This is what I use for my analysis (for now)
+using CombinedTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, aod::TrackSelection>;//This was used in the ChJetTriggerQA
+//using CombinedTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, aod::pidTPCPi, aod::pidTPCPr, aod::pidTOFPr, aod::TrackSelection>;//This is what I use for my analysis (for now)
+//using CombinedTracksRun2 = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, aod::pidTPCPi, aod::pidTPCPr, aod::TrackSelection>;
 //there are also pidTOFFullPr ... but this did not work, bc of the lambda k zero builder
+using CombinedTracksRun2 = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, aod::pidTPCPi, aod::pidTPCPr>;//run 2 data stores Tracks in AO2D - i removed this aod::TracksCov,
+using CombinedTracksRun3 = soa::Join<aod::TracksIU, aod::TracksExtra, aod::TracksCovIU, aod::TracksDCA, aod::pidTPCPi, aod::pidTPCPr>;//run 3 data stores TracksIU (inner most update) in AO2D
+using LabeledV0s = soa::Join<aod::V0Datas, aod::McV0Labels>;//for next step with MC identification with PDG code
+
 struct correlationvzerojets{
   //configurables for collision and track filter ! Crosscheck with configurables applied when using the jet finder
   Configurable<float> vertexZCut{"vertexZCut", 10.0f, "Accepted z-vertex range"};
@@ -93,9 +96,10 @@ struct correlationvzerojets{
   std::vector<fastjet::PseudoJet> jetReclustered;
   JetFinder jetReclusterer;
 
+  //change the filter to make things work !
   Filter collisionFilter = nabs(aod::collision::posZ) < vertexZCut;
   Filter trackFilter = (nabs(aod::track::eta) < trackEtaCut) && (requireGlobalTrackInFilter()) && (aod::track::pt > trackPtCutMin);//here also a max and then i can evaluate in different pt bins - see literature for proper ranges
-  Filter preFilterV0 = nabs(aod::v0data::dcapostopv) > dcapostopv&& nabs(aod::v0data::dcanegtopv) > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
+  Filter preFilterV0 = nabs(aod::v0data::dcapostopv) > dcapostopv&& nabs(aod::v0data::dcanegtopv) > dcanegtopv && aod::v0data::dcaV0daughters < dcav0dau;
   
   /* To keep the old version until I know if the otherstuff works.
    *
@@ -121,7 +125,7 @@ struct correlationvzerojets{
       {"hCollVtxZ", "hCollisionVtxZ", {HistType::kTH1F, {{nBins, -15., 15.}}}},
       {"hV0radius", "hV0radius", {HistType::kTH1F, {{nBins, 0., 200.}}}},
       {"hV0cospa", "hV0cospa", {HistType::kTH1F, {{nBins, 0.8, 1.1}}}},
-
+      //V0's from topological and kinematic selection
       {"hMK0Short", "hMK0Short; M (GeV/#it{c})", {HistType::kTH1F, {{nBins, 0, 4}}}},
       {"hPtK0Short", "if K0Short : v0.pt()  p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 20}}}},
       {"hEtaK0Short", "if K0Short : v0.eta() #eta; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
@@ -138,17 +142,17 @@ struct correlationvzerojets{
       {"hPhiAntiLambda", "if AntiLambda : v0.phi() #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
 
       //For invariant mass per pT bin
-      {"InvMvsPtK0Short","Inv. Mass vs p_{T} K0Short; Inv. Mass [GeV/#it{c}]; p_{T} [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0, 1.5}, {nBinsPt, 0, 50}}}},
-      {"InvMvsPtLambda","Inv. Mass vs p_{T} Lambda; Inv. Mass [GeV/#it{c}]; p_{T} [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0, 1.5}, {nBinsPt, 0, 50}}}},
-      {"InvMvsPtAntiLambda","Inv. Mass vs p_{T} AntiLmabda; Inv. Mass [GeV/#it{c}]; p_{T} [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0, 1.5}, {nBinsPt, 0, 50}}}},
+      {"InvMvsPtK0Short","Inv. Mass vs p_{T} K0Short; Inv. Mass (GeV/#it{c}); p_{T} (GeV/#it{c})", {HistType::kTH2F, {{nBins, 0, 1.5}, {nBinsPt, 0, 50}}}},
+      {"InvMvsPtLambda","Inv. Mass vs p_{T} Lambda; Inv. Mass (GeV/#it{c}); p_{T} [GeV/#it{c})", {HistType::kTH2F, {{nBins, 0, 1.5}, {nBinsPt, 0, 50}}}},
+      {"InvMvsPtAntiLambda","Inv. Mass vs p_{T} AntiLmabda; Inv. Mass (GeV/#it{c}); p_{T} [GeV/#it{c})", {HistType::kTH2F, {{nBins, 0, 1.5}, {nBinsPt, 0, 50}}}},
       //For cosPa per pT bin
-      {"CosPaVspTK0Short","K0Short; cosPa; p_{T} [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9945, 1}, {nBinsPt, 0, 50}}}},
-      {"CosPaVspTLambda","Lambda; cosPa; p_{T} [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9945, 1}, {nBinsPt, 0, 50}}}},
-      {"CosPaVspTAntiLambda","AntiLambda; cosPa; p_{T} [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9945, 1}, {nBinsPt, 0, 50}}}},
+      {"CosPaVspTK0Short","K0Short; cosPa; p_{T} (GeV/#it{c})", {HistType::kTH2F, {{nBins, 0.9945, 1}, {nBinsPt, 0, 50}}}},
+      {"CosPaVspTLambda","Lambda; cosPa; p_{T} (GeV/#it{c})", {HistType::kTH2F, {{nBins, 0.9945, 1}, {nBinsPt, 0, 50}}}},
+      {"CosPaVspTAntiLambda","AntiLambda; cosPa; p_{T} (GeV/#it{c})", {HistType::kTH2F, {{nBins, 0.9945, 1}, {nBinsPt, 0, 50}}}},
       //For cosPa vs invariant mass
-      {"CosPaVsMK0Short","K0Short; cosPa; Inv. Mass [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9945, 1}, {nBins, 0, 1.5}}}},
-      {"CosPaVsMLambda","Lambda; cosPa; Inv. Mass [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9945, 1}, {nBins, 0, 1.5}}}},
-      {"CosPaVsMAntiLambda","AntiLambda; cosPa; Inv. Mass [GeV/#it{c}]", {HistType::kTH2F, {{nBins, 0.9945, 1}, {nBins, 0, 1.5}}}},
+      {"CosPaVsMK0Short","K0Short; cosPa; Inv. Mass (GeV/#it{c})", {HistType::kTH2F, {{nBins, 0.9945, 1}, {nBins, 0, 1.5}}}},
+      {"CosPaVsMLambda","Lambda; cosPa; Inv. Mass (GeV/#it{c})", {HistType::kTH2F, {{nBins, 0.9945, 1}, {nBins, 0, 1.5}}}},
+      {"CosPaVsMAntiLambda","AntiLambda; cosPa; Inv. Mass (GeV/#it{c})", {HistType::kTH2F, {{nBins, 0.9945, 1}, {nBins, 0, 1.5}}}},
 
       //Daughter QA
       {"hKPtPosPion", "Koan PosPion ; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
@@ -191,6 +195,9 @@ struct correlationvzerojets{
       {"hTrackPt", "MyTracks in collision track p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
       {"hTrackEta", "MyTracks in collision: track #eta; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
       {"hTrackPhi", "MyTracks in collision: track #phi; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
+
+      //MC control plots
+      {"hResolution", "Resolution MC track pT; p_{T} [GeV/#it{c}] ", {HistType::kTH1F, {{nBins, -2, 2}}}},
 
       //jets as next 
       {"jetVtx", "jet vtxZ; vtxZ [cm] ", {HistType::kTH1F, {{nBins, -15, 15}}}},
@@ -326,110 +333,160 @@ struct correlationvzerojets{
   }
   PROCESS_SWITCH(correlationvzerojets, Jet, "process jets", true);
 
-  void V0(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision,  soa::Filtered<CombinedTracks> const& tracks, aod::V0Datas const& V0s){//no more my tracks
-    if(!collision.sel7()){// sel8 is event selection based on TVX mainly for run3 data, but sel7=bool -> Event selection decision based on V0A & V0C -> https://aliceo2group.github.io/analysis-framework/docs/datamodel/helperTaskTables.html
-      return;
-    }
+  template <class TMyTracks, typename TV0>
+  void processV0(TV0 const& v0, float const& pvx, float const& pvy, float const& pvz)
+  {
+    auto posTrackCast = v0.template posTrack_as<TMyTracks>();
+    auto negTrackCast = v0.template negTrack_as<TMyTracks>();
+    //auto v0 = V0.template;
+    //particle identification by using the tpcNSigma track variable
+    //in principle i could try the same with tofNSigma - but when to use what ?
+    float nsigma_pos_proton = TMath::Abs(posTrackCast.tpcNSigmaPr());// o2::aod::pidtpc::TPCNSigmaPr 	|	tpcNSigmaPr |	float |	Nsigma separation with the TPC detector for proton
+    float nsigma_neg_proton = TMath::Abs(negTrackCast.tpcNSigmaPr());// this is the TPC dE/dx, for 22 < 4; for 2017/2018 < 5 !
+    float nsigma_pos_pion = TMath::Abs(posTrackCast.tpcNSigmaPi());// o2::aod::pidtpc::TPCNSigmaPi 	|	tpcNSigmaPi |	float |	Nsigma separation with the TPC detector for pion
+    float nsigma_neg_pion = TMath::Abs(negTrackCast.tpcNSigmaPi());
 
-    registry.fill(HIST("hCollVtxZ"),collision.posZ()); // Inclusive Tracks from sel7 selections and the aod::pidTPCPi, aod::pidTPCPr
-	
-    for(auto& v0 : V0s){
-      //particle identification by using the tpcNSigma track variable
-      //in principle i could try the same with tofNSigma - but when to use what ?
-      float nsigma_pos_proton = TMath::Abs(v0.posTrack_as<CombinedTracks>().tpcNSigmaPr());// o2::aod::pidtpc::TPCNSigmaPr 	|	tpcNSigmaPr |	float |	Nsigma separation with the TPC detector for proton
-      float nsigma_neg_proton = TMath::Abs(v0.negTrack_as<CombinedTracks>().tpcNSigmaPr());// this is the TPC dE/dx, for 22 < 4; for 2017/2018 < 5 !
-      float nsigma_pos_pion = TMath::Abs(v0.posTrack_as<CombinedTracks>().tpcNSigmaPi());// o2::aod::pidtpc::TPCNSigmaPi 	|	tpcNSigmaPi |	float |	Nsigma separation with the TPC detector for pion
-      float nsigma_neg_pion = TMath::Abs(v0.negTrack_as<CombinedTracks>().tpcNSigmaPi());
+    if( posTrackCast.pt() > V0daugPtMin && negTrackCast.pt() > V0daugPtMin){
+      if(v0.v0radius() > MinV0radius && v0.v0radius() < MaxV0radius && v0.pt() < V0ptMax && v0.pt() > V0ptMin) {//v0 radius and pT bin cuts
+      //get v0.radius distribution
+      registry.fill(HIST("hV0radius"), v0.v0radius());
+      registry.fill(HIST("hV0cospa"), v0.v0cosPA(pvx, pvy, pvz));
 
-      if( v0.posTrack_as<CombinedTracks>().pt() > V0daugPtMin && v0.negTrack_as<CombinedTracks>().pt() > V0daugPtMin){
-        if(v0.v0radius() > MinV0radius && v0.v0radius() < MaxV0radius && v0.pt() < V0ptMax && v0.pt() > V0ptMin) {//v0 radius and pT bin cuts
-        //get citted v0.radius distribution
-        registry.fill(HIST("hV0radius"), v0.v0radius());
-        registry.fill(HIST("hV0cospa"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()));
+      //for invariant mass rejection as function of pT -- there are sources that select a fixed mass rejection but pt dependent cospa
+      float upperLambda = 1.13688 + 0.00527838*v0.pt() + 0.084222*exp(-3.80595*v0.pt());
+      float lowerLambda = 1.09501 - 0.00523272*v0.pt() - 0.075269*exp(-3.46339*v0.pt()); 
+      float upperKaon = 0.563707 + 0.0114979*v0.pt();
+      float lowerKaon = 0.43006 - 0.0110029*v0.pt();
 
-        //for invariant mass rejection as function of pT -- there are sources that select a fixed mass rejection but pt dependent cospa
-        float upperLambda = 1.13688 + 0.00527838*v0.pt() + 0.084222*exp(-3.80595*v0.pt());
-        float lowerLambda = 1.09501 - 0.00523272*v0.pt() - 0.075269*exp(-3.46339*v0.pt()); 
-        float upperKaon = 0.563707 + 0.0114979*v0.pt();
-        float lowerKaon = 0.43006 - 0.0110029*v0.pt();
+      if( nsigma_pos_pion < 5 && nsigma_neg_pion < 5 && v0.v0cosPA(pvx, pvy, pvz) > v0cospaK0s ){//topological daughter cut
+        if(v0.mK0Short() > upperKaon || v0.mK0Short() < lowerKaon ){return;}
+          registry.fill(HIST("hMK0Short"), v0.mK0Short());
+	        registry.fill(HIST("hPtK0Short"), v0.pt());
+	        registry.fill(HIST("hEtaK0Short"), v0.eta());
+          registry.fill(HIST("hPhiK0Short"), v0.phi());
+          //for invMass and CosPa per pT bin
+          registry.fill(HIST("InvMvsPtK0Short"), v0.mK0Short(), v0.pt());
+          registry.fill(HIST("CosPaVspTK0Short"), v0.v0cosPA(pvx, pvy, pvz), v0.pt());
+          registry.fill(HIST("CosPaVsMK0Short"), v0.v0cosPA(pvx, pvy, pvz), v0.mK0Short());
+          //for QA of daughters
+          registry.fill(HIST("hKPtPosPion"), posTrackCast.pt()); 
+          registry.fill(HIST("hKPtNegPion"), negTrackCast.pt()); 
+          registry.fill(HIST("hKEtaPosPion"), posTrackCast.eta()); 
+          registry.fill(HIST("hKEtaNegPion"), negTrackCast.eta()); 
+          registry.fill(HIST("hKPhiPosPion"), posTrackCast.phi()); 
+          registry.fill(HIST("hKPhiNegPion"), negTrackCast.phi()); 
+      }
+	    if( nsigma_pos_proton < 5 && nsigma_neg_pion < 5 && v0.v0cosPA(pvx, pvy, pvz) > v0cospaLamb ){
+        if(v0.mLambda() > upperLambda || v0.mLambda() < lowerLambda ){return;}
+          registry.fill(HIST("hMLambda"), v0.mLambda());
+          registry.fill(HIST("hPtLambda"), v0.pt());
+          registry.fill(HIST("hEtaLambda"), v0.eta());
+          registry.fill(HIST("hPhiLambda"), v0.phi());
+          //for invMass and CosPa per pT bin
+          registry.fill(HIST("InvMvsPtLambda"), v0.mLambda(), v0.pt());
+          registry.fill(HIST("CosPaVspTLambda"), v0.v0cosPA(pvx, pvy, pvz), v0.pt());
+          registry.fill(HIST("CosPaVsMLambda"), v0.v0cosPA(pvx, pvy, pvz), v0.mLambda());
+          //for QA of daughters -- this has to be corrected !
+          registry.fill(HIST("hLPtPosPr"), posTrackCast.pt()); 
+          registry.fill(HIST("hLPtNegPi"), negTrackCast.pt()); 
+          registry.fill(HIST("hLEtaPosPr"), posTrackCast.eta()); 
+          registry.fill(HIST("hLEtaNegPi"), negTrackCast.eta()); 
+          registry.fill(HIST("hLPhiPosPr"), posTrackCast.phi()); 
+          registry.fill(HIST("hLPhiNegPi"), negTrackCast.phi()); 
+	    }
+	    if( nsigma_pos_pion < 5 && nsigma_neg_proton < 5 && v0.v0cosPA(pvx, pvy, pvz) > v0cospaLamb ){
+        if(v0.mAntiLambda() > upperLambda || v0.mAntiLambda() < lowerLambda ){return;}
+          registry.fill(HIST("hMAntiLambda"), v0.mAntiLambda());	
+	        registry.fill(HIST("hPtAntiLambda"), v0.pt());
+          registry.fill(HIST("hEtaAntiLambda"), v0.eta());
+          registry.fill(HIST("hPhiAntiLambda"), v0.phi());
+          //for invMass per pT bin
+          registry.fill(HIST("InvMvsPtAntiLambda"), v0.mAntiLambda(), v0.pt());
+          registry.fill(HIST("CosPaVspTAntiLambda"), v0.v0cosPA(pvx, pvy, pvz), v0.pt());
+          registry.fill(HIST("CosPaVsMAntiLambda"), v0.v0cosPA(pvx, pvy, pvz), v0.mAntiLambda());
+          //for QA of daughters - maybe V0 specific plots
+          registry.fill(HIST("hALPtPosPion"), posTrackCast.pt()); 
+          registry.fill(HIST("hALPtNegPr"), negTrackCast.pt()); 
+          registry.fill(HIST("hALEtaPosPion"), posTrackCast.eta()); 
+          registry.fill(HIST("hALEtaNegPr"), negTrackCast.eta()); 
+          registry.fill(HIST("hALPhiPosPion"), posTrackCast.phi()); 
+          registry.fill(HIST("hALPhiNegPr"), negTrackCast.phi()); 
+      }
+      // Get V0 within radius and v0cosPA
+      registry.fill(HIST("hPtTrackV0inRadius"), v0.pt());
+      registry.fill(HIST("hEtaTrackV0inRadius"), v0.eta());
+      registry.fill(HIST("hPhiTrackV0inRadius"), v0.phi());
 
-        if( nsigma_pos_pion < 5 && nsigma_neg_pion < 5 && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospaK0s ){//topological daughter cut
-          if(v0.mK0Short() > upperKaon || v0.mK0Short() < lowerKaon ){continue;}
-            registry.fill(HIST("hMK0Short"), v0.mK0Short());
-	          registry.fill(HIST("hPtK0Short"), v0.pt());
-	          registry.fill(HIST("hEtaK0Short"), v0.eta());
-            registry.fill(HIST("hPhiK0Short"), v0.phi());
-            //for invMass and CosPa per pT bin
-            registry.fill(HIST("InvMvsPtK0Short"), v0.mK0Short(), v0.pt());
-            registry.fill(HIST("CosPaVspTK0Short"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()), v0.pt());
-            registry.fill(HIST("CosPaVsMK0Short"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()), v0.mK0Short());
-            //for QA of daughters
-            registry.fill(HIST("hKPtPosPion"), v0.posTrack_as<CombinedTracks>().pt()); 
-            registry.fill(HIST("hKPtNegPion"), v0.negTrack_as<CombinedTracks>().pt()); 
-            registry.fill(HIST("hKEtaPosPion"), v0.posTrack_as<CombinedTracks>().eta()); 
-            registry.fill(HIST("hKEtaNegPion"), v0.negTrack_as<CombinedTracks>().eta()); 
-            registry.fill(HIST("hKPhiPosPion"), v0.posTrack_as<CombinedTracks>().phi()); 
-            registry.fill(HIST("hKPhiNegPion"), v0.negTrack_as<CombinedTracks>().phi()); 
-       	}
-	      if( nsigma_pos_proton < 5 && nsigma_neg_pion < 5 && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospaLamb ){
-          if(v0.mLambda() > upperLambda || v0.mLambda() < lowerLambda ){continue;}
-            registry.fill(HIST("hMLambda"), v0.mLambda());
-            registry.fill(HIST("hPtLambda"), v0.pt());
-            registry.fill(HIST("hEtaLambda"), v0.eta());
-            registry.fill(HIST("hPhiLambda"), v0.phi());
-            //for invMass and CosPa per pT bin
-            registry.fill(HIST("InvMvsPtLambda"), v0.mLambda(), v0.pt());
-            registry.fill(HIST("CosPaVspTLambda"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()), v0.pt());
-            registry.fill(HIST("CosPaVsMLambda"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()), v0.mLambda());
-            //for QA of daughters -- this has to be corrected !
-            registry.fill(HIST("hLPtPosPr"), v0.posTrack_as<CombinedTracks>().pt()); 
-            registry.fill(HIST("hLPtNegPi"), v0.negTrack_as<CombinedTracks>().pt()); 
-            registry.fill(HIST("hLEtaPosPr"), v0.posTrack_as<CombinedTracks>().eta()); 
-            registry.fill(HIST("hLEtaNegPi"), v0.negTrack_as<CombinedTracks>().eta()); 
-            registry.fill(HIST("hLPhiPosPr"), v0.posTrack_as<CombinedTracks>().phi()); 
-            registry.fill(HIST("hLPhiNegPi"), v0.negTrack_as<CombinedTracks>().phi()); 
-	      }
-	      if( nsigma_pos_pion < 5 && nsigma_neg_proton < 5 && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospaLamb ){
-          if(v0.mAntiLambda() > upperLambda || v0.mAntiLambda() < lowerLambda ){continue;}
-            registry.fill(HIST("hMAntiLambda"), v0.mAntiLambda());	
-	          registry.fill(HIST("hPtAntiLambda"), v0.pt());
-            registry.fill(HIST("hEtaAntiLambda"), v0.eta());
-            registry.fill(HIST("hPhiAntiLambda"), v0.phi());
-            //for invMass per pT bin
-            registry.fill(HIST("InvMvsPtAntiLambda"), v0.mAntiLambda(), v0.pt());
-            registry.fill(HIST("CosPaVspTAntiLambda"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()), v0.pt());
-            registry.fill(HIST("CosPaVsMAntiLambda"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()), v0.mAntiLambda());
-            //for QA of daughters - maybe V0 specific plots
-            registry.fill(HIST("hALPtPosPion"), v0.posTrack_as<CombinedTracks>().pt()); 
-            registry.fill(HIST("hALPtNegPr"), v0.negTrack_as<CombinedTracks>().pt()); 
-            registry.fill(HIST("hALEtaPosPion"), v0.posTrack_as<CombinedTracks>().eta()); 
-            registry.fill(HIST("hALEtaNegPr"), v0.negTrack_as<CombinedTracks>().eta()); 
-            registry.fill(HIST("hALPhiPosPion"), v0.posTrack_as<CombinedTracks>().phi()); 
-            registry.fill(HIST("hALPhiNegPr"), v0.negTrack_as<CombinedTracks>().phi()); 
+      //add the mc ientification - PDG code to see true value 
+      
+      //for this i need an additional .h file and another subscription in my pipeline !               !! ok now we need to fix the mc part
+      //An adding the final STEP *5* - lambdakzerobuilder is able to do MC association for me #wow !
+      if( v0.has_mcParticle()){//association was made !
+        auto v0mcparticle = v0.mcParticle();
+        //Check particle PDG code to see if this is the one you want
+        if( v0mcparticle.pdgCode() == 310 ){
+          registry.fill(HIST("tMassK0Short"), v0.mK0Short());
+          registry.fill(HIST("tPtK0Short"), v0.pt());
+          registry.fill(HIST("tEtaK0Short"), v0.eta());
+          registry.fill(HIST("tPhiK0Short"), v0.phi());
         }
-        // Get V0 within radius and v0cosPA
-        registry.fill(HIST("hPtTrackV0inRadius"), v0.pt());
-        registry.fill(HIST("hEtaTrackV0inRadius"), v0.eta());
-        registry.fill(HIST("hPhiTrackV0inRadius"), v0.phi());
-	    }//if in v0 radius
+        if( v0mcparticle.pdgCode() == 3122 ){
+          registry.fill(HIST("tMassLambda"), v0.mLambda());// wtf why the same odg code for lamda and anti lambda ??
+          registry.fill(HIST("tPtLambda"), v0.pt());
+          registry.fill(HIST("tEtaLambda"), v0.eta());
+          registry.fill(HIST("tPhiLambda"), v0.phi());
+        }
+        if( v0mcparticle.pdgCode() == 3122 ){
+          registry.fill(HIST("tMassAntiLambda"), v0.mAntiLambda());
+          registry.fill(HIST("tPtAntiLambda"), v0.pt());
+          registry.fill(HIST("tEtaAntiLambda"), v0.eta());
+          registry.fill(HIST("tPhiAntiLambda"), v0.phi());
+        }
+      }
+    
+	    }//if in v0 radius and V0(mother) pt max / min
 	    registry.fill(HIST("hPtV0"), v0.pt());
 	    registry.fill(HIST("hEtaV0"), v0.eta());
       registry.fill(HIST("hPhiV0"), v0.phi());
     }//if in pT daughter range
+  }//end of V0's template --- aah so maybe we can use histos from this function for a fit and then bkg vs signal region ?
+
+  void V0run2(soa::Join<aod::Collisions, aod::EvSels>::iterator const& collision,  CombinedTracksRun2 const& tracks, soa::Filtered<LabeledV0s> const& V0s, aod::McParticles const&){//no more my tracks
+    if(!collision.sel7()){// sel8 is event selection based on TVX mainly for run3 data, but sel7=bool -> Event selection decision based on V0A & V0C -> https://aliceo2group.github.io/analysis-framework/docs/datamodel/helperTaskTables.html
+      return;
+    }
+    //maybe add this: if( track.tpcNClsCrossedRows() < 70) continue;// TPC selection = skip messy TPC tracks
+    registry.fill(HIST("hCollVtxZ"),collision.posZ()); // Inclusive Tracks from sel7 selections and the aod::pidTPCPi, aod::pidTPCPr
+    for(auto& v0 : V0s){
+      //call template
+      processV0<CombinedTracksRun2>(v0, collision.posX(), collision.posY(), collision.posZ() );
     }//end of V0's	
- 
+
     for(auto& track : tracks){//Check kinematics of tracks
-      if (!track.isQualityTrack()) {
-        continue; // skip bad quality tracks just like in the beginning of the jet process
-      }
+     // if (!track.isQualityTrack()) {
+     //   continue; // skip bad quality tracks just like in the beginning of the jet process
+     // }
       registry.fill(HIST("hTrackPt"), track.pt());
       registry.fill(HIST("hTrackEta"), track.eta());
       registry.fill(HIST("hTrackPhi"), track.phi());
     }
-
-   }
-  PROCESS_SWITCH(correlationvzerojets, V0, "process v0 and their track QA", true);
+  }
+  
+  PROCESS_SWITCH(correlationvzerojets, V0run2, "process v0 and their track QA", true);
 };
+
+/*//But what if I run over a pure mc sample ?
+  //https://github.com/jloemker/O2TutorialOct22/blob/567290a21c3b529a816d2e9a1c929ea8fbcd370d/day1/o2at-h1-0-taskskeleton.cxx#L68
+  void V0mc(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, aod::McTrackLabels> const& tracks, aod::McParticles const&){
+    for (auto& track : tracks) {
+	    auto mcParticle = track.mcParticle_as<aod::McParticles>();
+	    float delta = track.pt() - mcParticle.pt();
+	    registry.get<TH2>(HIST("hResolution"))->Fill(track.pt(),delta);
+    }
+  }
+  PROCESS_SWITCH(correlationvzerojets, V0mc, "process v0 and track qa for MC data", false);
+};
+*/
   
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
