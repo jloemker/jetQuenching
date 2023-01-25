@@ -1,2 +1,8 @@
 *.pdf
 *.root
+McRun3setup/*.root
+Run2setup/*.root
+Plots/AnalysisV0CollisionId
+Plots/AnalysisV0GlobalIndex
+Plots/perPtBin
+Plots/results
