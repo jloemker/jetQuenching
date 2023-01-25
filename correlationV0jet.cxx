@@ -105,8 +105,6 @@ struct correlationvzerojets{
 
   //Track and collision filter are applied in the beginning of the process function and the EvSel 
   Filter preFilterV0 = nabs(aod::v0data::dcapostopv) > dcapostopv&& nabs(aod::v0data::dcanegtopv) > dcanegtopv && aod::v0data::dcaV0daughters < dcav0dau;
-
-
   HistogramRegistry registry{
     "registry",
     {
