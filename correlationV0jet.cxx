@@ -66,7 +66,7 @@ using CombinedTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, 
 using CombinedTracksRun2 = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksDCA, aod::pidTPCPi, aod::pidTPCPr, aod::TrackSelection>;
 
 using MCombinedTracksRun2 = soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::TracksDCA, aod::pidTPCPi, aod::pidTPCPr>;//run 2 data stores Tracks in AO2D - i removed this aod::TracksCov,
-using MCombinedTracksRun3 = soa::Join<aod::TracksIU, aod::TracksExtra, aod::TracksCovIU, aod::TracksDCA, aod::pidTPCPi, aod::pidTPCPr>;//run 3 data stores TracksIU (inner most update) in AO2D
+using MCombinedTracksRun3 = soa::Join<aod::TracksIU, aod::TracksExtra, aod::TracksCovIU, aod::TracksDCA, aod::pidTPCPi, aod::pidTPCPr, aod::McTrackLabels>;//run 3 data stores TracksIU (inner most update) in AO2D
 using LabeledV0s = soa::Join<aod::V0Datas, aod::McV0Labels>;//for next step with V0MC identification with PDG code
 
 struct correlationvzerojets{
@@ -198,6 +198,17 @@ struct correlationvzerojets{
       {"tEtaAntiLambda", "if PDG 3122 AntiLambda; #eta", {HistType::kTH1F, {{nBinsEta, -0.9, 0.9}}}},
       {"tPhiAntiLambda", "if PDG 3122 AntiLambda; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
 
+      //Resolution plots V0
+      {"resoV0pt","#Delta p_{T} = V0 - McV0; V0 p_{T} (GeV/#it{c}); #Delta p_{T}", {HistType::kTH2F, {{nBinsPt, 0, 20}, {nBins, -3, 3}}}},
+      //Efficiency plots V0: 
+      //Efficiency as output/input as function of input pt = detector/particle level = (smeared?)MC with detector loss/all particles
+      {"effV0pt","#Delta p_{T} = McV0 / V0; V0 p_{T} (GeV/#it{c}); Eff.(p_{T})", {HistType::kTH2F, {{nBinsPt, 0, 20}, {nBins, 0, 2}}}},
+
+      //Resolution plots Tracks
+      {"resoTpt","#Delta p_{T} = Track - McTrack; Track p_{T} (GeV/#it{c}); #Delta p_{T}", {HistType::kTH2F, {{nBinsPt, 0, 20}, {nBins, -10, 10}}}},
+      //Efficiency plots Tracks
+      {"effTpt"," p_{T} = McTrack / Track; Track p_{T} (GeV/#it{c}); Eff.(p_{T})", {HistType::kTH2F, {{nBinsPt, 0, 20}, {nBins, 0, 2}}}},
+      
       //jets as next 
       {"jetVtx", "jet vtxZ; vtxZ [cm] ", {HistType::kTH1F, {{nBins, -15, 15}}}},
       {"JetTrackPt", "inclusive track p_{T}; p_{T} (GeV/#it{c})", {HistType::kTH1F, {{nBinsPt, 0, 100}}}},
@@ -351,6 +362,15 @@ struct correlationvzerojets{
         registry.fill(HIST("tEtaAntiLambda"), v0.eta());
         registry.fill(HIST("tPhiAntiLambda"), v0.phi());
       }
+      //Resolve MC V0's in  - no need to touch index!
+      float delta = v0.pt() - v0mcparticle.pt();
+      registry.get<TH2>(HIST("resoV0pt"))->Fill(v0.pt(), delta);
+      //Efficiency as output/input as function of input pt = detector/particle level = (smeared?)MC with detector loss/all particles
+      float eff = 0;
+      if(v0.pt() > 0 && v0mcparticle.pt() > 0){
+        eff = v0mcparticle.pt()/v0.pt();
+        registry.get<TH2>(HIST("effV0pt"))->Fill(v0.pt(), eff);
+      }
     }
   }
 
@@ -425,6 +445,20 @@ struct correlationvzerojets{
       registry.fill(HIST("hTrackPt"), track.pt());
       registry.fill(HIST("hTrackEta"), track.eta());
       registry.fill(HIST("hTrackPhi"), track.phi());
+
+      if( track.has_mcParticle()){
+      //Resolve MC track - no need to touch index!
+        auto mcParticle = track.mcParticle_as<aod::McParticles>();
+        float delta = track.pt() - mcParticle.pt() ;
+        registry.get<TH2>(HIST("resoTpt"))->Fill(track.pt(), delta);
+
+        //Efficiency as input/output as function of input pt = detector/particle level ~ (smeared?)MC with detector loss/all simulated particles
+        float eff = 0;
+        if(track.pt() > 0 && mcParticle.pt() > 0){
+          eff = mcParticle.pt()/track.pt() ;
+          registry.get<TH2>(HIST("effTpt"))->Fill(track.pt(), eff);
+        }
+      }
     }
   }
   

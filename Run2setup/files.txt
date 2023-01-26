@@ -1,9 +1,0 @@
-/home/johannalomker/alice/test/AOD/001/AO2D.root
-/home/johannalomker/alice/test/AOD/002/AO2D.root
-/home/johannalomker/alice/test/AOD/003/AO2D.root
-/home/johannalomker/alice/test/AOD/004/AO2D.root
-/home/johannalomker/alice/test/AOD/005/AO2D.root
-/home/johannalomker/alice/test/AOD/006/AO2D.root
-/home/johannalomker/alice/test/AOD/007/AO2D.root
-/home/johannalomker/alice/test/AOD/008/AO2D.root
-/home/johannalomker/alice/test/AOD/009/AO2D.root
