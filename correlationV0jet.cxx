@@ -199,15 +199,22 @@ struct correlationvzerojets{
       {"tPhiAntiLambda", "if PDG 3122 AntiLambda; #phi", {HistType::kTH1F, {{nBinsPhi, 0, 6.3}}}},
 
       //Resolution plots V0
-      {"resoV0pt","#Delta p_{T} = V0 - McV0; V0 p_{T} (GeV/#it{c}); #Delta p_{T}", {HistType::kTH2F, {{nBinsPt, 0, 20}, {nBins, -3, 3}}}},
-      //Efficiency plots V0: 
-      //Efficiency as output/input as function of input pt = detector/particle level = (smeared?)MC with detector loss/all particles
-      {"effV0pt","#Delta p_{T} = McV0 / V0; V0 p_{T} (GeV/#it{c}); Eff.(p_{T})", {HistType::kTH2F, {{nBinsPt, 0, 20}, {nBins, 0, 2}}}},
+      {"resoV0pt","#Delta p_{T} = MC truth V0 - V0; MC truth V0 p_{T} (GeV/#it{c}); #Delta p_{T}", {HistType::kTH2F, {{nBinsPt, 0, 20}, {nBins, -3, 3}}}},
+      {"resoV0eta","#Delta #eta = MC truth V0 - V0; MC truth V0 #eta; #Delta #eta", {HistType::kTH2F, {{nBinsPt, -0.9, 0.9}, {nBins, -1, 1}}}},
+      {"resoV0phi","#Delta #phi = MC truth V0 - V0; MC truth V0 #phi (GeV/#it{c}); #Delta #phi", {HistType::kTH2F, {{nBinsPt, 0, 6.32}, {nBins, -5, 5}}}},
+      //Efficiency plots V0
+      {"effV0pt","Eff.(p_{T}) = V0 / MC truth V0; MC truth V0 p_{T} (GeV/#it{c}); Eff.(p_{T})", {HistType::kTH2F, {{nBinsPt, 0, 20}, {nBins, 0, 2}}}},
+      {"effV0eta","Eff.(#eta) = V0 / MC truth V0; MC truth V0 #eta; Eff.(#eta)", {HistType::kTH2F, {{nBinsEta, -0.9, 0.9}, {nBins, 0, 2}}}},
+      {"effV0phi","Eff.(#phi) = V0 / MC truth V0; MC truth V0 #phi; Eff.(#phi)", {HistType::kTH2F, {{nBinsPhi, 0, 6.32}, {nBins, 0, 2}}}},
 
       //Resolution plots Tracks
-      {"resoTpt","#Delta p_{T} = Track - McTrack; Track p_{T} (GeV/#it{c}); #Delta p_{T}", {HistType::kTH2F, {{nBinsPt, 0, 20}, {nBins, -10, 10}}}},
+      {"resoTpt","#Delta p_{T} = MC Track - Track; MC truth track p_{T} (GeV/#it{c}); #Delta p_{T}", {HistType::kTH2F, {{nBinsPt, 0, 20}, {nBins, -10, 10}}}},
+      {"resoTeta","#Delta #eta = MC Track - Track; MC truth track #eta; #Delta #eta", {HistType::kTH2F, {{nBinsEta, -0.9, 0.9}, {nBins, -1, 1}}}},
+      {"resoTphi","#Delta #phi = MC Track - Track; MC truth track #phi; #Delta #phi", {HistType::kTH2F, {{nBinsPhi, 0, 6.32}, {nBins, -5, 5}}}},
       //Efficiency plots Tracks
-      {"effTpt"," p_{T} = McTrack / Track; Track p_{T} (GeV/#it{c}); Eff.(p_{T})", {HistType::kTH2F, {{nBinsPt, 0, 20}, {nBins, 0, 2}}}},
+      {"effTpt"," Eff.(p_{T}) = Track / MC truth track; MC truth track p_{T} (GeV/#it{c}); Eff.(p_{T})", {HistType::kTH2F, {{nBinsPt, 0, 20}, {nBins, 0, 2}}}},
+      {"effTeta"," Eff.(#eta) = Track / MC truth track; MC truth track #eta; Eff.(#eta)", {HistType::kTH2F, {{nBinsEta, -0.9, 0.9}, {nBins, 0, 2}}}},
+      {"effTphi"," Eff.(#phi) = Track / MC truth track; MC truth track #phi; Eff.(#phi)", {HistType::kTH2F, {{nBinsPhi, 0, 6.32}, {nBins, 0, 2}}}},
       
       //jets as next 
       {"jetVtx", "jet vtxZ; vtxZ [cm] ", {HistType::kTH1F, {{nBins, -15, 15}}}},
@@ -363,13 +370,27 @@ struct correlationvzerojets{
         registry.fill(HIST("tPhiAntiLambda"), v0.phi());
       }
       //Resolve MC V0's in  - no need to touch index!
-      float delta = v0.pt() - v0mcparticle.pt();
-      registry.get<TH2>(HIST("resoV0pt"))->Fill(v0.pt(), delta);
+      float deltaPt = v0mcparticle.pt() - v0.pt();
+      float deltaEta = v0mcparticle.eta() - v0.eta();
+      float deltaPhi = v0mcparticle.phi() - v0.phi();
+      registry.get<TH2>(HIST("resoV0pt"))->Fill(v0mcparticle.pt(), deltaPt);
+      registry.get<TH2>(HIST("resoV0eta"))->Fill(v0mcparticle.eta(), deltaEta);
+      registry.get<TH2>(HIST("resoV0phi"))->Fill(v0mcparticle.phi(), deltaPhi);
       //Efficiency as output/input as function of input pt = detector/particle level = (smeared?)MC with detector loss/all particles
-      float eff = 0;
+      float effPt = 0;
+      float effEta =0;
+      float effPhi = 0;
       if(v0.pt() > 0 && v0mcparticle.pt() > 0){
-        eff = v0mcparticle.pt()/v0.pt();
-        registry.get<TH2>(HIST("effV0pt"))->Fill(v0.pt(), eff);
+        effPt = v0.pt()/v0mcparticle.pt();
+        registry.get<TH2>(HIST("effV0pt"))->Fill(v0mcparticle.pt(), effPt);
+      }
+      if(abs(v0.eta()) > 0 && abs(v0mcparticle.eta()) > 0){
+        effEta = v0.eta()/v0mcparticle.eta();
+        registry.get<TH2>(HIST("effV0eta"))->Fill(v0mcparticle.eta(), effEta);
+      }
+      if(v0.phi() > 0 && v0mcparticle.phi() > 0){
+        effPhi = v0.phi()/v0mcparticle.phi();
+        registry.get<TH2>(HIST("effV0phi"))->Fill(v0mcparticle.phi(), effPhi);
       }
     }
   }
@@ -447,16 +468,28 @@ struct correlationvzerojets{
       registry.fill(HIST("hTrackPhi"), track.phi());
 
       if( track.has_mcParticle()){
-      //Resolve MC track - no need to touch index!
         auto mcParticle = track.mcParticle_as<aod::McParticles>();
-        float delta = track.pt() - mcParticle.pt() ;
-        registry.get<TH2>(HIST("resoTpt"))->Fill(track.pt(), delta);
-
-        //Efficiency as input/output as function of input pt = detector/particle level ~ (smeared?)MC with detector loss/all simulated particles
-        float eff = 0;
+        float deltaPt = mcParticle.pt() - track.pt();
+        float deltaEta = mcParticle.eta() - track.eta();
+        float deltaPhi = mcParticle.phi() - track.phi();
+        registry.get<TH2>(HIST("resoTpt"))->Fill(mcParticle.pt(), deltaPt);
+        registry.get<TH2>(HIST("resoTeta"))->Fill(mcParticle.eta(), deltaEta);
+        registry.get<TH2>(HIST("resoTphi"))->Fill(mcParticle.phi(), deltaPhi);
+        //Efficiency as output/input -> mc/mc_truth as function of mc_truth
+        float effPt = 0;
+        float effEta = 0;
+        float effPhi = 0;
         if(track.pt() > 0 && mcParticle.pt() > 0){
-          eff = mcParticle.pt()/track.pt() ;
-          registry.get<TH2>(HIST("effTpt"))->Fill(track.pt(), eff);
+          effPt = track.pt()/mcParticle.pt() ;
+          registry.get<TH2>(HIST("effTpt"))->Fill(mcParticle.pt(), effPt);
+        }
+        if(abs(track.eta()) > 0 && abs(mcParticle.eta()) > 0){
+          effEta = track.eta()/mcParticle.eta() ;
+          registry.get<TH2>(HIST("effTeta"))->Fill(mcParticle.eta(), effEta);
+        }
+        if(track.phi() > 0 && mcParticle.phi() > 0){
+          effPhi = track.phi()/mcParticle.phi() ;
+          registry.get<TH2>(HIST("effTphi"))->Fill(mcParticle.phi(), effPhi);
         }
       }
     }
