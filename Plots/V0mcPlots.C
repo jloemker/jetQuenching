@@ -62,22 +62,22 @@ void plotProjection(TH2F *VarVsKin, TString kin, TString varname){
         
 }
 
-//to do ! shhiit this should be profiles ... or i am dumb ... tomorrow... 
-/*
+//Oh well..nach muede kommt doof - moin johanna 
+//trotzdem sollte hier noch rungekabeled werden und dann noch baryon over meson fuer den vergleich mit pp
 void plotVariablePerObservable(TH2F *VarVsKin, TString kin, TString varname){
-    TProfile* hx = VarVsKin->ProfileX("hx");// x should stay x - y should become Y
+    TH1D* hx = VarVsKin->ProjectionX("hx");
     TH1D* hy = VarVsKin->ProjectionY("hy");
     TH1D* h = VarVsKin->ProjectionX("h");
-    
-    h->Integral() returns the number of entries. ( = h->GetEntries() ) (A summatory)
-    h->Integral(“width”) returns the “actual” integral. ( = h->Integral()*binWidth if fixed bin size)
-    
 
-    for(int i = 0; i < h->GetNbinsX(); i++){
-        float y = VarVsKin->ProjectionY()->GetBinCenter(i);
-        float val = VarVsKin->ProjectionY()->GetBinContent(i)/hy->Integral();
-        cout<<val<<endl;
-        h->SetBinContent(hx->GetBinCenter(i) , hy->GetBinCenter(i),val);
+    for(int i = 0; i < hx->GetNbinsX(); i++){
+        float val = 0;
+        for(int j = 0; j < hy->GetNbinsX(); j++){
+            float cont = VarVsKin->GetBinContent(i,j);
+            if(hy->GetBinContent(j) == 0){continue;}
+            val = val+cont/hy->Integral();
+            if(val>0){cout<<val<<endl;}   
+        }
+        h->SetBinContent(i ,val);
     }
     TCanvas *can = new TCanvas("can", "projection", 800, 400);
     //h->SetTitle(Form("X projection of "+varname+" in "+kin+" bin No.%d",i));
@@ -85,7 +85,7 @@ void plotVariablePerObservable(TH2F *VarVsKin, TString kin, TString varname){
     h->Draw();
     can->SaveAs("results/"+varname+"/"+kin+".pdf");
 }
-*/
+
 
 //and we can also look at the baryon over meson ratio for the kinematic selection and after adding pT dependent true information also for this
 //-> these results should be consitent with 1/2 bc this simulated dataset was pp run 3.
@@ -174,5 +174,6 @@ void V0mcPlots(){
 
     //4) projection as function of pT (integrated -- fill histos in loop over pt)
     plotVariablePerObservable(resoV0pt, "V0pT", "resolution");
+    plotVariablePerObservable(effV0pt, "V0pT", "efficiency");
 
 }
