@@ -63,29 +63,83 @@ void plotProjection(TH2F *VarVsKin, TString kin, TString varname){
 }
 
 //Oh well..nach muede kommt doof - moin johanna 
-//trotzdem sollte hier noch rungekabeled werden und dann noch baryon over meson fuer den vergleich mit pp
-void plotVariablePerObservable(TH2F *VarVsKin, TString kin, TString varname){
+//trotzdem sollte hier noch rungekabeled werden und dann noch baryon over meson fuer den vergleich mit
+void plotVariablePerObservable(TH2F *VarVsKin, TString kin, TString varname){//maybe i do need the Teff in my process function ..
     TH1D* hx = VarVsKin->ProjectionX("hx");
     TH1D* hy = VarVsKin->ProjectionY("hy");
     TH1D* h = VarVsKin->ProjectionX("h");
+
+    TString title = VarVsKin->GetTitle();
 
     for(int i = 0; i < hx->GetNbinsX(); i++){
         float val = 0;
         for(int j = 0; j < hy->GetNbinsX(); j++){
             float cont = VarVsKin->GetBinContent(i,j);
-            if(hy->GetBinContent(j) == 0){continue;}
-            val = val+cont/hy->Integral();
+            if(abs(hy->GetBinContent(j)) > 0){
+                val = val+cont/hy->Integral();
+            }
             if(val>0){cout<<val<<endl;}   
         }
         h->SetBinContent(i ,val);
     }
     TCanvas *can = new TCanvas("can", "projection", 800, 400);
-    //h->SetTitle(Form("X projection of "+varname+" in "+kin+" bin No.%d",i));
-    h->GetYaxis()->SetTitle("varname");
+    h->SetTitle(" ");
+    h->GetYaxis()->SetTitle(varname+": "+title);
     h->Draw();
     can->SaveAs("results/"+varname+"/"+kin+".pdf");
 }
 
+void plotBaryonOverMeson(TFile *Result1){
+    gStyle -> SetOptStat(0);
+    TH1F *hLamb = (TH1F*) Result1->Get("correlationvzerojets/hPtLambda");
+    TH1F *hALamb = (TH1F*) Result1->Get("correlationvzerojets/hPtAntiLambda");
+    TH1F *hKaon = (TH1F*) Result1->Get("correlationvzerojets/hPtK0Short");
+
+    TH1F *tLamb = (TH1F*) Result1->Get("correlationvzerojets/tPtLambda");
+    TH1F *tALamb = (TH1F*) Result1->Get("correlationvzerojets/tPtAntiLambda");
+    TH1F *tKaon = (TH1F*) Result1->Get("correlationvzerojets/tPtK0Short");
+
+    hLamb->Sumw2();
+    tLamb->Sumw2();
+
+    TH1F *hSum = (TH1F*) hLamb->Clone();
+    TH1F *tSum = (TH1F*) tLamb->Clone();
+
+    hSum->Add(hALamb);
+    tSum->Add(tALamb);
+
+    hSum->Divide(hSum, hKaon, 1.0, 2.0);
+    tSum->Divide(tSum, tKaon, 1.0, 2.0);
+
+    auto L = new TLegend(0.67,0.75, 0.83,0.9);
+    L->SetHeader("MC 2021 pp@#sqrt{s} = 7TeV","C");
+    L->SetTextSize(0.036);
+    L->AddEntry(hSum, "hypothetical V0 ", "lep");
+    L->AddEntry(tSum , "truth MC labelled V0", "lep");
+    L->SetBorderSize(0);
+    L->SetFillStyle(0);
+    //this needs a legend and somehow the true and hypothetic are the same or I miss plotting the second
+    TCanvas *can = new TCanvas("can", "baryon over meson ratio", 800, 500);
+    TPad *pad = new TPad("pad", "pad", 0., 0., 1, 1);
+    pad->SetBottomMargin(0.15); 
+    pad->SetLeftMargin(0.15);
+	pad->SetRightMargin(0.1);
+    pad->Draw();
+    pad->cd();
+    hSum->Rebin(2);
+    tSum->Rebin(2);
+    hSum->GetXaxis()->SetRangeUser(0,6);//make more bins in low pT and then rebin properly ! --this is also not yet wroking..
+    hSum->GetYaxis()->SetRangeUser(0,3);
+    hSum->GetYaxis()->SetTitle("#frac{(#Lambda + #hat{#Lambda})}{2 K_{S}^{0}}");
+    hSum->SetTitle(" ");
+    hSum->SetLineColor(kRed+1);
+    hSum->DrawCopy(" ");
+    tSum->SetLineColor(kGreen+1);
+    tSum->Draw("Esame");
+    L->Draw();
+    can->SaveAs("results/MC_BaryonOverMeson.pdf");
+}
+        
 
 //and we can also look at the baryon over meson ratio for the kinematic selection and after adding pT dependent true information also for this
 //-> these results should be consitent with 1/2 bc this simulated dataset was pp run 3.
@@ -126,6 +180,10 @@ void V0mcPlots(){
     TH2F *effTpt = (TH2F*) Result->Get("correlationvzerojets/effTpt");
     TH2F *effTeta = (TH2F*) Result->Get("correlationvzerojets/effTeta");
     TH2F *effTphi = (TH2F*) Result->Get("correlationvzerojets/effTphi");
+
+    //Baryon over Meson ratio
+    plotBaryonOverMeson(Result);
+    
     //1) 2D histos as a function 
     //V0
     EffAndRes2D(resoV0pt, resoV0eta , resoV0phi, "resolution", "V0");
@@ -172,8 +230,23 @@ void V0mcPlots(){
     plotProjection(effTeta, "Teta", "efficiency");
     plotProjection(effTphi, "Tphi",  "efficiency");  
 
-    //4) projection as function of pT (integrated -- fill histos in loop over pt)
+    //4) projection as function of pT (integrated -- fill histos in loop over pt) --- still fucked up
+    //V0
     plotVariablePerObservable(resoV0pt, "V0pT", "resolution");
+    plotVariablePerObservable(resoV0eta, "V0eta", "resolution");
+    plotVariablePerObservable(resoV0phi, "V0phi", "resolution");
+
     plotVariablePerObservable(effV0pt, "V0pT", "efficiency");
+    plotVariablePerObservable(effV0eta, "V0eta", "efficiency");
+    plotVariablePerObservable(effV0phi, "V0phi", "efficiency");
+    //Tracks
+    plotVariablePerObservable(resoTpt, "TpT", "resolution");
+    plotVariablePerObservable(resoTeta, "Teta", "resolution");
+    plotVariablePerObservable(resoTphi, "Tphi", "resolution");
+
+    plotVariablePerObservable(effTpt, "TpT", "efficiency");
+    plotVariablePerObservable(effTeta, "Teta", "efficiency");
+    plotVariablePerObservable(effTphi, "Tphi", "efficiency");
+
 
 }
